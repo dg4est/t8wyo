@@ -9,9 +9,9 @@ t8wyo is an example software framework built on top of t8code.
 ---
 # 2. Compilation
     To compile t8wyo and the 3rd party libraries (t8code, metis):
-    ./build.sh <options>
+    ./makescript.sh <options>
 
-**Usage**: ./build.sh `{OPTIONS}`...`{COMPILER OPTIONS}`...`{3PL OPTIONS}`
+**Usage**: ./makescript.sh `{OPTIONS}`...`{COMPILER OPTIONS}`...`{3PL OPTIONS}`
 
 | OPTIONS:             | Shortcut    | Description                                         |
 |:---------------------|-------------|:----------------------------------------------------|
@@ -36,10 +36,10 @@ t8wyo is an example software framework built on top of t8code.
 
 # Common Build Options:
 **Default (-go)**: Sets CC=mpicc CXX=mpicxx FC=mpif90
-    ./build.sh -go
+    ./makescript.sh -go
 
 **Intel MPI (-impi)**: Sets CC=mpiicc CXX=mpiicpc FC=mpiifort
-    ./build.sh -impi
+    ./makescript.sh -impi
 
 ---
 # 3. Dependencies
