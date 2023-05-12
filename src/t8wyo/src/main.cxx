@@ -32,8 +32,10 @@ int main(int argc, char **argv){
     int use_occ_geometry = 0;   /* open cascade geometry flag */
     int level = 3;              /* refinement level */
     int dim = DIM;              /* grid dimension */
-    char outfile[] = (DIM==2) ? "cmesh_demo_2D":
-                                "cmesh_demo_3D";
+    char outfile[BUFF_SIZE];
+
+    (DIM==2) ? strcpy(outfile,"cmesh_demo_2D"):
+               strcpy(outfile,"cmesh_demo_3D");
 
     cmesh = t8wyo_create_cmesh(t8wyo.ctx.comm,mshfile,level,dim,use_occ_geometry);
     t8_cmesh_vtk_write_file(cmesh,outfile,1.0);

@@ -85,5 +85,6 @@ t8_cmesh_t t8wyo_create_cmesh(MPI_Comm comm,
         /* t8code example meshes */
         if(dim == 2) return t8_cmesh_new_disjoint_bricks(10,10, 0,0,0,0,comm); // 2D
         if(dim == 3) return t8_cmesh_new_disjoint_bricks(10,10,10,0,0,0,comm); // 3D
+        return NULL;
   }
 }
