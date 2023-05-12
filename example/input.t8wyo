@@ -1,0 +1,342 @@
+                        DG4EST INPUT FILE (Version 3.0)
+                              CartDG (Version 3.0)
+===============================================================================
+#                                DG4EST INPUTS                                #
+===============================================================================
+------------
+# Log Info #
+------------
+log_display: 0                # Logging options:
+                              #   [0]: log all
+                              #   [1]: residual/performance/igpb/mesh
+                              #   [2]: residual/performance/igbp
+                              #   [3]: residual/performance/function
+                              #   [4]: residual/performance details
+                              #   [5]: residual/performance summary
+                              #   [6]: residual details
+                              #   [7]: residual summary
+                              #   [8]: residual only
+                              #   [9]: log none
+-----------
+# File IO #
+-----------
+checkpoint_interval: 10       # Interval to output checkpoint file
+extraction_interval: 0        # Interval to output extraction file
+visualization_interval: 1     # Interval to output visualization file
+flowstatistics_interval: 1    # Interval to output flow statistics file
+acoustics_interval: 0         # Interval to output acoustics file
+analytic_solution_norm: 0     # Output analytic solution norm flag
+-------------------
+# Data Extraction #
+-------------------
+extract_npoints: 0            # Number of points to extract
+pt0: 0.0 0.0 0.0              # x y z
+
+extract_nlines: 0             # Number of lines to extract
+line0_npts: 10                # Number sampling points along plane: nx
+line0_lo: 0.0 0.0 0.0         # xlo ylo zlo
+line0_hi: 0.0 0.0 0.0         # xhi yhi zhi
+
+extract_nplanes: 0            # Number of planes to extract
+plane0_npts: 10 10            # Number sampling points along plane: nx ny
+plane0_center: 0.0 0.0 0.0    # Center point: x y z
+plane0_distxy: 1.0 1.0        # Distance from center point: dx dy
+plane0_normal: 0.0 0.0 1.0    # Normal vector to plane: vx vy vz
+
+extract_nvolumes: 0           # Number of volumes to extract
+volume0_npts: 10 10 10        # Number sampling points in volume: nx ny nz
+volume0_center: 0.0 0.0 0.0   # Center point: x y z
+volume0_distxyz: 1.0 1.0 1.0  # Distance from center point: dx dy dz
+volume0_axis_x: 1.0 0.0 0.0   # Oriented-Bounding-Box x-axis vector: xvx xvy xvz
+volume0_axis_y: 0.0 1.0 0.0   # Oriented-Bounding-Box y-axis vector: yvx yvy yvz
+volume0_axis_z: 0.0 0.0 1.0   # Oriented-Bounding-Box z-axis vector: zvx zvy zvz
+----------------------
+# Acoustics Analysis #
+----------------------
+acoustics_nboxes: 0           # Number of acoustic permeable surface boxes
+ac_box0_lo: 0.0 0.0 0.0       # xlo ylo zlo
+ac_box0_hi: 2.0 1.0 1.0       # xhi yhi zhi
+ac_box0_bounded: 1            # limit box to computational domain: [0] OFF [1] ON
+ac_box0_wrapped: 1            # adjust box to be water-tight: [0] OFF [1] ON
+-----------
+# Restart #
+-----------
+reset_flow: 0                 # Reset flow on restart: [0] OFF [1] ON
+restart_flag: 0               # Restart flag options:  [0] OFF [1] ON
+restart_file: WRK/checkpoint/restart.0000000
+-------------------
+# Structured Grid #
+-------------------
+nelem: 8 8 1                  # x-elements y-elements z-elements
+domain_lo: -5.0 -5.0  0.0     # xlo ylo zlo
+domain_hi:  5.0  5.0  1.0     # xhi yhi zhi
+periodic_flag: 1 1 0          # x-flag y-flag z-flag
+                              #   [0]: periodic OFF
+                              #   [1]: periodic ON
+---------------------
+# Unstructured Grid #
+---------------------
+unstructured_flag: 0          # Unstructured grid flag:
+                              #   [0]:   structured grid
+                              #   [1]: unstructured grid
+unstructured_file: grids/naca0012.inp
+-----------------
+# Time Stepping #
+-----------------
+time_formulation: 1           # Time stepping formulation options:
+                              #   [0]: Steady state
+                              #   [1]: Standard time stepping
+                              #   [2]: Dual time stepping
+time_scheme: 4                # Time stepping scheme options:
+                              #   [1]: Explicit RK-1, 1st-Order
+                              #   [2]: Explicit RK-2, 2nd-Order
+                              #   [3]: Explicit RK-3, 3rd-Order
+                              #   [4]: Explicit RK-4, 4th-Order
+time_scheme_dual: 2           # Dual time stepping scheme options:
+                              #   [1]: BDF1
+                              #   [2]: BDF2
+time_steps: 100               # Number of global time steps
+cfl: 0.500000                 # CFL number scales dt (max: 0.5)
+dt: 1.00000                   # Local maximum time step
+wake3d_dt: 1.00000            # Global time step size
+                              # wake3d_dt = DTACC * DT_REF_LENGTH / sqrt(gamma) / REF_MACH
+ncyc: 1000                    # Number of linear iterations (steady state/dual time steps)
+dual_conv_drop_tol: 1.0       # Dual time stepping convergence drop tolerance (orders of mag.)
+convergence_tol: 1.0e-16      # Convergence tolerance
+-------------
+# Multigrid #
+-------------
+multigrid_scheme: 0           # Multigrid scheme options:
+                              #   [0]: Multigrid OFF
+                              #   [1]: FAS V-Cycle
+                              #   [2]: FAS F-Cycle
+                              #   [3]: FAS W-Cycle
+multigrid_ncycles: 10         # Maximum multigrid cycles per step
+multigrid_smooth_fac: 0.8     # Correction smoothing factor (0.2-1.2)
+multigrid_nsweeps: 10         # Maximum smoothing sweeps on each level
+multigrid_nsweeps_init: 0     # Initial smoothing sweeps on each level
+multigrid_p_levels: 4         # Number of multigrid levels
+MG0: 3   5   0                # MG{Level}: p-degree ncyc_smooth ncyc_post_smooth
+MG1: 2   5   0
+MG2: 1   5   0
+MG3: 0   5   0
+--------------
+# AMR Levels #
+--------------
+max_amr_level: 3              # Maximum amr level number
+min_amr_level: 0              # Minimum amr level number
+----------
+# Regrid #
+----------
+regrid_interval: 1            # Global time step regrid interval
+regrid_strategy: 2            # Regrid strategy options:
+                              #   [1]: tag features to max_level_pmax
+                              #   [2]: tag features to max_level
+                              #   [3]: dg4est-v1 scheme
+regrid_nspread: 0             # Number of quadrants to spread tagging
+regrid_coarsen: 1             # Coarsening flag options:
+                              #   [0]: coarsen OFF
+                              #   [1]: coarsen ON
+regrid_features: 1            # Regrid tagging based on features:
+                              #   [0]: tag features OFF
+                              #   [1]: tag features ON
+regrid_points: 0              # Regrid tagging based on points:
+                              #   [0]: tag points OFF
+                              #   [1]: tag points ON
+regrid_point_scale: 1.0       # Box radius to tag points (scales point size)
+-----------------------
+# Regrid hp-AMR Boxes #
+-----------------------
+amr_nhboxes: 0                # Number of h-adaption box regions
+amr_hbox0_level: 5            # Level of box region
+amr_hbox0_lo: 0.0 0.0 0.0     # xlo ylo zlo
+amr_hbox0_hi: 1.0 1.0 1.0     # xhi yhi zhi
+amr_hbox0_autotag: 0          # Refine level strategy:
+                              #   [0]: auto tag OFF: feature tag only
+                              #   [1]: auto tag ON
+amr_npboxes: 0                # Number of p-adaption box regions
+amr_pbox0_pdegree: 1          # p-degree of box region
+amr_pbox0_lo: 0.0 0.0 0.0     # xlo ylo zlo
+amr_pbox0_hi: 1.0 1.0 1.0     # xhi yhi zhi
+amr_pbox0_level_strategy: 1   # p-degree assignment strategy:
+                              #   [0]: all levels
+                              #   [1]: top level only
+===============================================================================
+#                                CARTDG INPUTS                                #
+===============================================================================
+----------------------
+# Polynomial Degrees #
+----------------------
+pdegree_max: 3                # Maximum p-degree
+pdegree_min: 1                # Minimum p-degree
+qdegree: 1                    # Geometry q-degree
+------------------
+# Regrid Tagging #
+------------------
+amr_ntag_methods: 1           # Number of tagging methods:
+                              # Tag_Method options:
+                              #     [1]: density below threshold
+                              #     [2]: density above threshold
+                              #     [3]: vorticity magnitude
+                              #     [4]: q-criterion magnitude
+                              #     [5]: density gradient
+tag0: 1 0.99                  # Tag_Method Tag_Threshold
+tag1: 2 1.05
+tag2: 3 0.10
+
+amr_ntag_boxes: 0             # Number of fixed box regions to tag:
+amr_box0_lo: 0.0 0.0 0.0      # xlo ylo zlo
+amr_box0_hi: 1.0 1.0 1.0      # xhi yhi zhi
+----------------------
+# Initial Conditions #
+----------------------
+initial_condition: 1          # Initial conditions options:
+                              #   [0]: free-stream
+                              #   [1]: isentropic vortex
+                              #   [2]: Ringleb flow
+                              #   [3]: Taylor-Green vortex
+bc_initial_condition: 1       # Boundary initial condition options:
+                              #   [0]: free-stream
+                              #   [1]: isentropic vortex
+                              #   [2]: Ringleb flow
+                              #   [3]: Taylor-Green vortex
+nsmooth_initial_condition: 0  # Number of layers for smoothing initial condition
+                              #   Provides a smooth transition for no-slip wall
+                              #   boundary initial conditions
+mach: 0.100000                # Mach number
+alpha: 0.000000               # Incidence angle
+beta: 0.000000                # Yaw angle
+gamma: 1.400000               # Ratio of specific heats (air: 1.4)
+density: 1.000000             # Nondimensional density
+pressure: 0.714286            # Nondimensional pressure
+forces_ref_area: 1.0          # Force calculation reference area
+forces_ref_length: 1.0        # Force calculation reference length
+forces_plane: 1               # Force calculation plane:
+                              #   [1]: xy-plane
+                              #   [2]: xz-plane
+                              #   [3]: yz-plane
+-----------------------
+# Boundary Conditions #
+-----------------------
+bc_xlo: 4                     # Boundary condition options (structured grids):
+bc_xhi: 4                     #   [1]: free stream
+bc_ylo: 4                     #   [2]: slip wall
+bc_yhi: 4                     #   [3]: no-slip wall
+bc_zlo: 2                     #   [4]: characteristic
+bc_zhi: 2                     #   [5]: total inlet
+                              #      total_inlet_P0_{face}: {total pressure (normalized)}
+                              #      total_inlet_T0_{face}: {total temperature (normalized)}
+                              #      total_inlet_n1_{face}: {inlet velocity norm 1}
+                              #      total_inlet_n2_{face}: {inlet velocity norm 2}
+                              #      total_inlet_n3_{face}: {inlet velocity norm 3}
+                              #   [6]: static pressure outlet
+                              #        static_outlet_P_{face}: {static pressure (normalized)}
+
+slip_wall0: 'fuselage '       # Assign bc to patches [list of patches]
+no_slip_wall0: 'wing'         # Assign bc to patches [list of patches]
+no_slip_wall1: 'flap1,flap2'  # Assign bc to patches [list of patches]
+characteristic0: 'far field'  # Assign bc to patches [list of patches]
+total_inlet0: 'inlet'         # Assign bc to patches [list of patches]
+total_inlet0_P0: 0.847294741  # Inlet total pressure (normalized)
+total_inlet0_T0: 1.05         # Inlet total temperature (normalized)
+total_inlet0_n1: 1.0          # Inlet velocity norm 1
+total_inlet0_n2: 0.0          # Inlet velocity norm 2
+total_inlet0_n3: 0.0          # Inlet velocity norm 3
+static_outlet0: 'outlet'      # Assign bc to patches [list of patches]
+static_outlet0_P: 0.714285714 # Outlet static pressure (normalized)
+
+wake3d_wbc: 'Wall'            # Wake3d wall boundaries list
+wake3d_obc: 'Farfield Inflow' # Wake3d outer boundaries list
+---------------------
+# Basis Integration #
+---------------------
+basis_type: 0                 # Basis functions:
+                              #   [0]: (Nodal) Lagrange polynomials
+                              #   [1]: (Modal) Legendre polynomials
+quadrature_type: 0            # Quadrature points:
+                              #   [0]: Gauss-Legendre points (2p+1)
+                              #   [1]: Lobatto-Gauss  points (2p-1)
+collocation: 1                # Collocation flag:
+                              #   [0]: OFF (tensor operations)
+                              #   [1]: ON
+overintegration_npts: 0       # Number of over-integration points
+------------------
+# Riemann Solver #
+------------------
+iriemann: 0                   # Riemann solver options:
+                              #   [0]: Lax Friedrichs
+                              #   [1]: Roe
+                              #   [2]: Roe with entropy fix
+                              #   [3]: Low Mach Roe (TODO)
+riemann_diss_scaler: 1.0      # Flux dissipation scale factor
+                              #   [0.0]: no dissipation
+                              #   [1.0]: regular dissipation
+--------------------
+# Diffusive Solver #
+--------------------
+idiffusive: 0                 # Numerical diffusive flux method:
+                              #   [0]: SIP
+                              #   [1]: BR1 (TODO)
+                              #   [2]: BR2
+viscous_penalty_scaler: 6.0   # Viscous flux penalty term scale factor
+                              #   [1.0]: BR2 default
+                              #   [6.0]: SIP default
+------------------
+# Discretization #
+------------------
+isplit_form: 0                # Split formulation options:
+                              #   [0]: standard DG weak form
+                              #   [1]: standard DG split form
+                              #   [2]: Pirozzoli
+                              #   [3]: Kennedy & Gruber
+                              #   [4]: Chandrashekar Entropy Stable
+------------------------
+# Turbulence Equations #
+------------------------
+iturb: 0                      # Turbulence equation options:
+                              #   [0]: inviscid
+                              #   [1]: laminar compressible Navier-Stokes (no model)
+                              #   [2]: LES-local WALE model
+                              #   [3]: LES-local constant Smagorinsky model
+                              #   [4]: LES-WALE model
+                              #   [5]: LES-constant Smagorinsky model
+                              #   [6]: LES-dynamic  Smagorinsky model
+                              #   [7]: LES-TKE transport model (TODO)
+mach_ref: -1.0                # Reference Mach number: (<0.0: uses freestream mach)
+prandtl_num: 0.72             # Prantdl number
+reynolds_num: 1600.0          # Reynolds number
+reynolds_length: 1.0          # Reynolds length
+------------------
+# LES Parameters #
+------------------
+smagorinsky_scaler: 1.0       # Constant Smagorinsky scale factor
+smagorinsky_const: 0.17       # Constant Smagorinsky parameter (0.12-0.19)
+smagorinsky_ratio_max:  1.0   # Dynamic  Smagorinsky max ratio limit
+smagorinsky_ratio_min:  0.0   # Dynamic  Smagorinsky min ratio limit
+prandtl_turb: 0.90            # Turbulent Prandtl number
+test_filter_pdegree: 1	      # Dynamic  Smagorinsky test filter p-degree (p-degree/2)
+-----------
+# Sources #
+-----------
+source_gravity: 0             # Gravity force source flag
+source_coriolis: 0            # Coriolis force source flag
+
+altitude_direction: y         # Body force height direction
+heading_direction: z          # Free stream direction for Coriolis force
+degrees_latitude: 0.0         # Latitude on Earth for Coriolis force
+compass_angle: 0.0            # Compass angle of free stream direction on Earth
+------------------------
+# Artificial Viscosity #
+------------------------
+artificial_viscosity: 0       # Artificial viscosity flag
+av_scale_factor: 1.0          # AV scaling factor
+av_activation_limit: 1.0e-8   # AV activation limit (~1E-6)
+----------------------
+# Boundary Filtering #
+----------------------
+filter_bc_xlo: 0 0            # Filter Boundary Elements
+filter_bc_xhi: 0 0            #   flag filter_pdegree
+filter_bc_ylo: 0 0            #   flag options: [0] OFF [1] ON
+filter_bc_yhi: 0 0
+filter_bc_zlo: 0 0
+filter_bc_zhi: 0 0
