@@ -32,9 +32,7 @@ extern "C" {
 /* offsets for \elem_info: NOTES end of file */
 #define ETYPE_IND 0     /**< @brief Element type     offset into \elem_info */
 #define ELEVL_IND 1     /**< @brief Element level    offset into \elem_info */
-#define ESOLN_IND 2     /**< @brief Element solution offset into \elem_info */
-#define EGEOM_IND 3     /**< @brief Element geometry offset into \elem_info */
-#define INFO_ELEM_SIZE 4
+#define INFO_ELEM_SIZE 2
 
 /* offsets for \face_info: NOTES end of file */
 #define FTYPE_IND  0    /**< @brief            face type                   offset into \face_info */
