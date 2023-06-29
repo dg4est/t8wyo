@@ -17,6 +17,8 @@
 extern "C" {
 #endif
 
+#define FBASE 1
+
 /** double/float data type overload */
 #ifndef SINGLE_PRECISION
 #  define Real double

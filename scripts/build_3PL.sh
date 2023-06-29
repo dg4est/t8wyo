@@ -345,6 +345,11 @@ if [ ${BUILD_T8CODE} -eq 1 ]; then
   #           --with-occ=<OCC_LIBS> # OpenCASCADE High Order Geometry
 
   ${MAKE_CMD}
+
+  # copy internal t8code header files for mcell cmesh construction
+  cp src/t8_cmesh/t8_cmesh_types.h ${INSTALL_T8CODE_DIRECTORY}/t8_cmesh/.
+  cp src/t8_cmesh/t8_cmesh_stash.h ${INSTALL_T8CODE_DIRECTORY}/t8_cmesh/.
+
   cd ${CURRENT_PATH}
 
   if [ ! -d "${INSTALL_T8CODE_DIRECTORY}" ]; then

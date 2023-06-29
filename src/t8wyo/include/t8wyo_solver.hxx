@@ -29,26 +29,27 @@ extern "C" {
 #define BUFF_SIZE 1024      /**< @brief string buffer size */
 #define MAX_LEVELS 29       /**< @brief number of maximum levels allowed */
 
-/* offsets for \quad_info: NOTES end of file */
-#define QLEVL_IND 0     /**< @brief Quadrant level    offset into \quad_info */
-#define QSOLN_IND 1     /**< @brief Quadrant solution offset into \quad_info */
-#define QGEOM_IND 2     /**< @brief Quadrant geometry offset into \quad_info */
-#define QPDEG_IND 3     /**< @brief Quadrant p-degree offset into \quad_info */
-#define QQDEG_IND 4     /**< @brief Quadrant q-degree offset into \quad_info */
+/* offsets for \elem_info: NOTES end of file */
+#define ETYPE_IND 0     /**< @brief Element type     offset into \elem_info */
+#define ELEVL_IND 1     /**< @brief Element level    offset into \elem_info */
+#define ESOLN_IND 2     /**< @brief Element solution offset into \elem_info */
+#define EGEOM_IND 3     /**< @brief Element geometry offset into \elem_info */
+#define INFO_ELEM_SIZE 4
 
 /* offsets for \face_info: NOTES end of file */
 #define FTYPE_IND  0    /**< @brief            face type                   offset into \face_info */
-#define FFQUAD_IND 1    /**< @brief       this quad index in \quad_info    offset into \face_info */
+#define FFELEM_IND 1    /**< @brief       this quad index in \elem_info    offset into \face_info */
 #define FFSIDE_IND 2    /**< @brief       this quad side                   offset into \face_info */
-#define F1QUAD_IND 3    /**< @brief neighbor 1 quad index in \quad_info    offset into \face_info */
+#define F1ELEM_IND 3    /**< @brief neighbor 1 quad index in \elem_info    offset into \face_info */
 #define F1SIDE_IND 4    /**< @brief neighbor 1 quad side                   offset into \face_info */
-#define F2QUAD_IND 5    /**< @brief neighbor 2 quad index in \quad_info    offset into \face_info */
+#define F2ELEM_IND 5    /**< @brief neighbor 2 quad index in \elem_info    offset into \face_info */
 #define F2SIDE_IND 6    /**< @brief neighbor 2 quad side                   offset into \face_info */
-#define F3QUAD_IND 7    /**< @brief neighbor 3 quad index in \quad_info    offset into \face_info */
+#define F3ELEM_IND 7    /**< @brief neighbor 3 quad index in \elem_info    offset into \face_info */
 #define F3SIDE_IND 8    /**< @brief neighbor 3 quad side                   offset into \face_info */
-#define F4QUAD_IND 9    /**< @brief neighbor 4 quad index in \quad_info    offset into \face_info */
+#define F4ELEM_IND 9    /**< @brief neighbor 4 quad index in \elem_info    offset into \face_info */
 #define F4SIDE_IND 10   /**< @brief neighbor 4 quad side                   offset into \face_info */
 #define FBCID_IND  3    /**< @brief physical ID (only for boundary sides!) offset into \face_info */
+#define INFO_FACE_SIZE 11
 
 #define BC_TYPE   1
 #define FULL_TYPE 2
@@ -70,6 +71,21 @@ extern "C" {
 #define yhi_mask 0b00001000 /**< yhi face intersection flag */
 #define zlo_mask 0b00010000 /**< zlo face intersection flag */
 #define zhi_mask 0b00100000 /**< zhi face intersection flag */
+
+#define MESH_MODE_MCELL   0
+#define MESH_MODE_GMSH    1
+#define MESH_MODE_CART    2
+#define MESH_MODE_COUNT   3
+#define MESH_MODE_INVALID 4
+
+#define TIMER(time,...)      \
+  do {                       \
+      double t_start,t_end;  \
+      t_start = MPI_Wtime(); \
+      __VA_ARGS__            \
+      t_end = MPI_Wtime();   \
+      time = t_end-t_start;  \
+  } while(0)
 
 /**
  * @brief Contains all grid data.
@@ -132,18 +148,15 @@ class external_t {
     int face_info_size;         /**< Number of entries per face in face_info */
     int edge_info_size;         /**< Number of entries per edge in egde_info */
     int node_info_size;         /**< Number of entries per node in node_info */
-    int quad2face_info_size;    /**< Number of entries per quad in q2face_info */
-    int quad2edge_info_size;    /**< Number of entries per quad in q2edge_info */
-    int quad2node_info_size;    /**< Number of entries per quad in q2node_info */
+    int elem2face_info_size;    /**< Number of entries per quad in q2face_info */
+    int elem2node_info_size;    /**< Number of entries per quad in q2node_info */
 
-    wyo::memory<int> quad_info;  /**< Quad information: notes at bottom of file */
+    wyo::memory<int> elem_info;  /**< Element information: notes at bottom of file */
     wyo::memory<int> face_info;  /**< Face information: notes at bottom of file */
-    wyo::memory<int> edge_info;  /**< Edge information: notes at bottom of file */
     wyo::memory<int> node_info;  /**< Node information: notes at bottom of file */
-    wyo::memory<int> quad2face_info;       /**< Quadrant to face information */
-    wyo::memory<int> quad2edge_info;       /**< Quadrant to edge information */
-    wyo::memory<int> quad2node_info;       /**< Quadrant to node information */
-    wyo::memory<int> quad_data_sizes;      /**< Quadrant data size used */
+    wyo::memory<int> elem2face_info;       /**< Element to face information */
+    wyo::memory<int> elem2node_info;       /**< Element to node information */
+    wyo::memory<int> elem_data_sizes;      /**< Element data size used */
     wyo::memory<int> full_face_info;       /**< Full face indices into face_info */
     wyo::memory<int> hang_face_info;       /**< Hang face indices into face_info */
     wyo::memory<int> bdry_face_info;       /**< Boundary condition face indices into face_info */
@@ -162,10 +175,10 @@ class external_t {
     wyo::memory<Real> Q2;            /**< External BDF storage: time (n-2) */
 
     wyo::memory<Real> QBC;           /**< External solution BC buffer */
-    wyo::memory<Real> quad_geom;     /**< Grid quadrant coordinates */
-    wyo::memory<Real> quad_volume;   /**< Grid quadrant volume */
+    wyo::memory<Real> elem_geom;     /**< Grid element coordinates */
+    wyo::memory<Real> elem_volume;   /**< Grid element volume */
 
-    wyo::memory<Real> quad_vol2surf; /**< Grid quadrant volume to surface area ratio */
+    wyo::memory<Real> elem_vol2surf; /**< Grid element volume to surface area ratio */
     wyo::memory<Real> vgeo_co;       /**< Volume collocation geometry Jacobian factors */
     wyo::memory<Real> vgeo;          /**< Volume  geometry Jacobian factors */
     wyo::memory<Real> sgeo;          /**< Surface geometry Jacobian factors */
@@ -276,20 +289,18 @@ class t8wyo_t {
 /* ========================================================================== *
  * NOTES: Data Structures                                                     *
  * -------------------------------------------------------------------------- *
- * int *quad_info: Quad information on element (4 fields per element)         *
- *      quad_info[0] = grid level                                             *
- *      quad_info[1] = solution index                                         *
- *      quad_info[2] = geometry index                                         *
- *      quad_info[3] = p-degree                                               *
- *      quad_info[4] = t-degree                                               *
- *      quad_info[5] = q-degree                                               *
+ * int *elem_info: local information on element (4 fields per element)        *
+ *      elem_info[0] = element type                                           *
+ *      elem_info[1] = solution index                                         *
+ *      elem_info[2] = geometry index                                         *
+ *      elem_info[3] = grid level                                             *
  * -------------------------------------------------------------------------- *
  * int *face_info: Face information on element (7/11 fields per face)         *
  *      face_info[0] = face_type                                              *
  *                    *face_type == 1: boundary                               *
  *                    *face_type == 2: full-full                              *
  *                    *face_type == 3: hanging: check side (face_info[2])     *
- *      face_info[1] = this quad index in quad_info                           *
+ *      face_info[1] = this elem index in elem_info                           *
  *      face_info[2] = side of element                                        *
  *                    *side == 0: xlo face                                    *
  *                      | Left  | Right |                                     *

@@ -1,5 +1,6 @@
 # include 3PL header files
 include_directories(${t8code_dir}/include
+                    ${t8code_dir}/
                     ${metis_dir}/include)
 
 # find 3PL libraries
@@ -22,20 +23,25 @@ file(GLOB SRC_H *.h *.hxx)
 
 # src files
 set(SRC
+    t8wyo_cell3d.cxx
+    t8wyo_cmesh_from_mcell.cxx
     amr_initialize.cxx
-    # file2.cxx
-    # file3.cxx
-    # ...
 )
+
+# Fortran math kernels
+add_subdirectory(CELL3D)
 
 # build shared libraries
 add_library(t8wyo2d SHARED ${SRC} ${SRC_H} ${GIT_FILE})
 add_library(t8wyo3d SHARED ${SRC} ${SRC_H} ${GIT_FILE})
 target_compile_definitions(t8wyo2d PUBLIC -D_2D_)
 
+target_compile_definitions(t8wyo2d PUBLIC -DMPI_ON)
+target_compile_definitions(t8wyo3d PUBLIC -DMPI_ON)
+
 # link 3PL libraries to shared library
-target_link_libraries(t8wyo2d ${sc_lb} ${t8code_lb} ${metis_lb} m)
-target_link_libraries(t8wyo3d ${sc_lb} ${t8code_lb} ${metis_lb} m)
+target_link_libraries(t8wyo2d cell_solver_2d ${sc_lb} ${t8code_lb} ${metis_lb} m)
+target_link_libraries(t8wyo3d cell_solver_3d ${sc_lb} ${t8code_lb} ${metis_lb} m)
 
 # build executable
 add_executable(t8wyo2d.mpi main.cxx)

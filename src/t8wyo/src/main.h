@@ -11,6 +11,7 @@
 
 /* header files */
 #include "amr_initialize.h"
+#include "t8wyo_cell3d.h"
 
 #ifdef __cplusplus
 extern "C" {
