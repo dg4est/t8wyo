@@ -130,7 +130,7 @@ correct_neg_volume(t8_eclass eclass,double *tree_vertices,int tree_id){
     int switch_indices[4] = { 0 };
     T8_ASSERT(t8_eclass_to_dimension[eclass] == 3);
 
-    printf("Correcting negative volume of tree %i\n",tree_id);
+    printf("Correcting negative volume of tree %li\n",tree_id);
     switch (eclass) {
         case T8_ECLASS_TET:
             /* We switch vertex 0 and vertex 3 */
@@ -578,7 +578,7 @@ t8_cmesh_from_mcell(const char *fileprefix,
     mpiret = MPI_Comm_rank(comm,&mpirank);
 
     /* read mcell file on rank 0 */
-    //cell3d_read_mesh(mcell);
+    cell3d_read_mesh(mcell);
 
     if (!do_bcast || mpirank == 0) {
         /* initialize cmesh structure */
@@ -629,6 +629,7 @@ t8_cmesh_from_mcell(const char *fileprefix,
     if(cmesh != NULL) t8_cmesh_commit(cmesh,comm);
 
     /* deallocate fortran data */
+    cell3d_deallocate_mesh();
     if(mpirank == 0) printf("Successfully constructed cmesh.\n");
     return cmesh;
 }

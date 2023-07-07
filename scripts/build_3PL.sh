@@ -336,7 +336,7 @@ if [ ${BUILD_T8CODE} -eq 1 ]; then
               --enable-shared --disable-static                      \
               --disable-debug --enable-mpi                          \
               --without-blas                                        \
-              --with-metis=${INSTALL_METIS_DIRECTORY}               \
+              #--with-metis=${INSTALL_METIS_DIRECTORY}               \
               "CC=$CC" "CXX=$CXX" "FC=$FC" "F77=$FC"                \
               "CFLAGS=$CFLAGS"                                      \
               | tee config.out

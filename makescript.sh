@@ -175,8 +175,8 @@ if [ $BUILD_SOLVER == 0 -a $BUILD_3PL == 0 ]; then
   # build 3PL libraries
   ./build_3PL.sh $cmd_args
 
-  # build solver
-  ./build_solver.sh $cmd_args
+  # build t8wyo library
+  ./build_t8wyo.sh $cmd_args
 
   cd ..
 
@@ -207,7 +207,7 @@ if [ $BUILD_SOLVER == 1 ]; then
   echo "================="
 
   cd scripts
-  ./build_solver.sh $cmd_args
+  ./build_t8wyo.sh $cmd_args
   cd ..
 
   echo

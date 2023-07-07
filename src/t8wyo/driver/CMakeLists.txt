@@ -1,9 +1,5 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.12)
-PROJECT(t8wyo)
-enable_language(Fortran)
-
-#find_package(MPI REQUIRED)
-include_directories(${MPI_INCLUDE_PATH})
+PROJECT(t8wyo-driver)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -33,7 +29,6 @@ else ()
 endif ()
 
 set(t8code_dir "" CACHE PATH  "t8code install directory location")
-set(metis_dir  "" CACHE PATH  "metis  install directory location")
 # --------------------------------------------------------------------------- #
 
 # ========================================== #
@@ -44,15 +39,8 @@ endif ()
 # ========================================== #
 
 # ======================================= #
-# Library header files to be included
-include_directories(${t8code_dir}/include
-                    ${metis_dir}/include
-                    ./include)
-
 # Libraries to be linked
-find_library(t8code_lb  NAMES t8    PATHS ${t8code_dir}/lib)
-find_library(sc_lb      NAMES sc    PATHS ${t8code_dir}/lib)
-#find_library(metis_lb   NAMES metis PATHS ${metis_dir}/lib)
+#find_library(t8wyo_lb NAMES t8wyo3d  PATHS ${t8wyo_dir}/lib)
 # ======================================= #
 
 # ======================================= #
@@ -60,5 +48,4 @@ find_library(sc_lb      NAMES sc    PATHS ${t8code_dir}/lib)
 #   recursively build subdirectory
 set(src_path src)
 add_subdirectory(${src_path})
-add_subdirectory(driver)
 # ======================================= #
