@@ -50,7 +50,7 @@ void t8wyo_initialize_libs_from_comm(MPI_Comm *comm,ctx_t *ctx);
  * @return     cmesh
  */
 t8_cmesh_t
-t8wyo_create_cmesh(char mode,const char *mshfile,
+t8wyo_create_cmesh(char mode,const char *mshfile,mcell_t *mcell,
                    int level,int dim,int use_occ_geometry,
                    MPI_Comm comm);
 

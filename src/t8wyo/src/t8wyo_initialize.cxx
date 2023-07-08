@@ -55,21 +55,21 @@ void t8wyo_initialize_libs_from_comm(MPI_Comm *comm,ctx_t *ctx){
 }
 
 t8_cmesh_t
-t8wyo_create_cmesh(char mode,const char *mshfile,
+t8wyo_create_cmesh(char mode,const char *mshfile,mcell_t *mcell,
                    int level,int dim,int use_occ_geometry,
                    MPI_Comm comm){
 
     /* load from gmsh or mcell file and partition */
     if (mode == MESH_MODE_GMSH || mode == MESH_MODE_MCELL) {
         t8_cmesh_t cmesh = (mode == MESH_MODE_GMSH) ? t8_cmesh_from_msh_file(mshfile,0,comm,dim,0,use_occ_geometry):
-                           (mode == MESH_MODE_MCELL)? t8_cmesh_from_mcell(NULL,1,comm,dim,use_occ_geometry):
+                           (mode == MESH_MODE_MCELL)? t8_cmesh_from_mcell(mcell,1,comm,dim,use_occ_geometry):
                                                       NULL;
 
         /* partitioning of the occ geometry is not yet available */
         if (use_occ_geometry) {
-          t8_productionf("cmesh was not partitioned. Partitioning is not yet "
-                         "available with the curved geometry\n");
-          return cmesh;
+            t8_productionf("cmesh was not partitioned. Partitioning is not yet "
+                           "available with the curved geometry\n");
+            return cmesh;
         }
 
         /* partition this cmesh according to the initial refinement level */
@@ -91,15 +91,14 @@ t8wyo_create_cmesh(char mode,const char *mshfile,
     }
 }
 
-//t8_forest_t
-//t8wyo_build_forest(t8_cmesh_t cmesh,int level,sc_MPI_Comm comm){
-//    t8_scheme_cxx_t *scheme = t8_scheme_new_default_cxx();
-//    int ghost_flag = 1;
-//
-//    /* return uniform forest with ghost faces */
-//    return t8_forest_new_uniform(cmesh,scheme,level,ghost_flag,comm);
-//}
+t8_forest_t
+t8wyo_build_forest(t8_cmesh_t cmesh,int level,sc_MPI_Comm comm){
+    t8_scheme_cxx_t *scheme = t8_scheme_new_default_cxx();
+    int ghost_flag = 1;
 
+    /* return uniform forest with ghost faces */
+    return t8_forest_new_uniform(cmesh,scheme,level,ghost_flag,comm);
+}
 
 /* struct stores all information associated to a elements face */
 typedef struct {

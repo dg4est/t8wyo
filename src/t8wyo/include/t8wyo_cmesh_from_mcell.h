@@ -52,7 +52,7 @@ t8wyo_mcell_node_parametric_t;
 /* functions */
 /* ========= */
 t8_cmesh_t
-t8_cmesh_from_mcell(const char *fileprefix,
+t8_cmesh_from_mcell(mcell_t *mcell,
                     int do_bcast,MPI_Comm comm,
                     int dim,int use_occ_geometry);
 

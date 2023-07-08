@@ -554,10 +554,9 @@ t8_cmesh_from_mcell_register_geometries(t8_cmesh_t cmesh,
 }
 
 t8_cmesh_t
-t8_cmesh_from_mcell(const char *fileprefix,
+t8_cmesh_from_mcell(mcell_t *mcell,
                     int do_bcast,MPI_Comm comm,
                     int dim,int use_occ_geometry){
-    mcell_t mcell;
     t8_cmesh_t cmesh;
     sc_hash_t *vertices = NULL;
     sc_mempool_t *node_mempool = NULL;
@@ -571,14 +570,8 @@ t8_cmesh_from_mcell(const char *fileprefix,
     /* MCELL: 3D only */
     T8_ASSERT(dim==3);
 
-    /* suppress warning */
-    (void) fileprefix;
-
     mpiret = MPI_Comm_size(comm,&mpisize);
     mpiret = MPI_Comm_rank(comm,&mpirank);
-
-    /* read mcell file on rank 0 */
-    //cell3d_read_mesh(mcell);
 
     if (!do_bcast || mpirank == 0) {
         /* initialize cmesh structure */
@@ -588,10 +581,10 @@ t8_cmesh_from_mcell(const char *fileprefix,
         t8_cmesh_set_dimension(cmesh,dim);
 
         /* set vertices from mcell data */
-        vertices = t8wyo_mcell_nodes(&mcell,&node_mempool);
+        vertices = t8wyo_mcell_nodes(mcell,&node_mempool);
 
         /* set vertices */
-        t8_cmesh_mcell_elements(&mcell,cmesh,vertices,&vertex_indices,
+        t8_cmesh_mcell_elements(mcell,cmesh,vertices,&vertex_indices,
                                 linear_geometry,use_occ_geometry,occ_geometry);
 
         /* set faces */
@@ -615,7 +608,7 @@ t8_cmesh_from_mcell(const char *fileprefix,
     /* register the geometries for the cmesh */
     const int registered_geom_success =
         t8_cmesh_from_mcell_register_geometries(cmesh,use_occ_geometry,dim,
-                                                mcell.prefix,&linear_geometry,
+                                                mcell->prefix,&linear_geometry,
                                                &occ_geometry);
 
     if (!registered_geom_success) {

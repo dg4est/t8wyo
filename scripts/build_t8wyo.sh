@@ -319,7 +319,7 @@ if [ $BUILD_T8WYO == 1 ]; then
 
   cmake -D CMAKE_C_COMPILER=${CC_PATH}                              \
         -D CMAKE_CXX_COMPILER=${CXX_PATH}                           \
-	-D CMAKE_Fortran_COMPILER=${FC_PATH}                        \
+        -D CMAKE_Fortran_COMPILER=${FC_PATH}                        \
         -D CMAKE_C_FLAGS=${C_FLAGS}                                 \
         -D CMAKE_CXX_FLAGS=${CXX_FLAGS}                             \
         -D CMAKE_Fortran_FLAGS=${Fortran_FLAGS}                     \

@@ -21,6 +21,12 @@
 #define T8WYO_EXTERN_C_BEGIN() SC_EXTERN_C_BEGIN
 #define T8WYO_EXTERN_C_END()   SC_EXTERN_C_END
 
+#ifdef _2D_
+#  define DIM 2
+#else
+#  define DIM 3
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif

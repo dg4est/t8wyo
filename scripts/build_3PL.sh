@@ -311,12 +311,12 @@ if [ ${BUILD_T8CODE} -eq 1 ]; then
   echo -e "${mC} ========================= ${eC}"
   echo " "
 
-  if [ ! -d "${INSTALL_METIS_DIRECTORY}" ]; then
-    echo "Error:"
-    echo "${INSTALL_METIS_DIRECTORY} does not exist."
-    echo " Please build Metis first: ./build_3PL.sh metis"
-    exit
-  fi
+#  if [ ! -d "${INSTALL_METIS_DIRECTORY}" ]; then
+#    echo "Error:"
+#    echo "${INSTALL_METIS_DIRECTORY} does not exist."
+#    echo " Please build Metis first: ./build_3PL.sh metis"
+#    exit
+#  fi
 
   cd ${PROJECT_ROOT}
   git submodule init    # init t8wyo submodules
@@ -336,7 +336,6 @@ if [ ${BUILD_T8CODE} -eq 1 ]; then
               --enable-shared --disable-static                      \
               --disable-debug --enable-mpi                          \
               --without-blas                                        \
-              #--with-metis=${INSTALL_METIS_DIRECTORY}               \
               "CC=$CC" "CXX=$CXX" "FC=$FC" "F77=$FC"                \
               "CFLAGS=$CFLAGS"                                      \
               | tee config.out

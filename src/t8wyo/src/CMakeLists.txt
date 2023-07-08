@@ -29,19 +29,17 @@ set(SRC
 )
 
 # build shared libraries
-add_library(t8wyo2d STATIC ${SRC} ${SRC_H} ${GIT_FILE})
-add_library(t8wyo3d STATIC ${SRC} ${SRC_H} ${GIT_FILE})
-target_compile_definitions(t8wyo2d PUBLIC -D_2D_)
-
-target_compile_definitions(t8wyo2d PUBLIC -DMPI_ON)
+add_library(t8wyo3d SHARED ${SRC} ${SRC_H} ${GIT_FILE})
 target_compile_definitions(t8wyo3d PUBLIC -DMPI_ON)
-
-# link 3PL libraries to shared library
-target_link_libraries(t8wyo2d ${sc_lb} ${t8code_lb} ${metis_lb} m)
 target_link_libraries(t8wyo3d ${sc_lb} ${t8code_lb} ${metis_lb} m)
 
+#add_library(t8wyo2d SHARED ${SRC} ${SRC_H} ${GIT_FILE})
+#target_compile_definitions(t8wyo2d PUBLIC -D_2D_)
+#target_compile_definitions(t8wyo2d PUBLIC -DMPI_ON)
+#target_link_libraries(t8wyo2d ${sc_lb} ${t8code_lb} ${metis_lb} m)
+
 # install executables and libraries
-install(TARGETS t8wyo2d t8wyo3d
+install(TARGETS t8wyo3d
         RUNTIME DESTINATION bin/
         LIBRARY DESTINATION lib/
         ARCHIVE DESTINATION lib/

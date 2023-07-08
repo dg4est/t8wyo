@@ -1,20 +1,22 @@
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.12)
 PROJECT(t8wyo)
+
+# --------------------------------------------------------------------------- #
 enable_language(Fortran)
-
-#find_package(MPI REQUIRED)
 include_directories(${MPI_INCLUDE_PATH})
-
+# --------------------------------------------------------------------------- #
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-
+# --------------------------------------------------------------------------- #
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+# --------------------------------------------------------------------------- #
 macro(SET_O2_FLAGS)
   string(REPLACE "-O3" "-O2" CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}")
   string(REPLACE "-O3" "-O2" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
   string(REPLACE "-O3" "-O2" CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE}")
 endmacro()
-
+# --------------------------------------------------------------------------- #
 # AVX vector compiler flags
 #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mavx2 -mfma")
 
@@ -39,7 +41,7 @@ set(metis_dir  "" CACHE PATH  "metis  install directory location")
 # ========================================== #
 # Intel Optimization Flag: AVX2 instructions
 if (CMAKE_C_COMPILER_ID MATCHES "Intel")
-  add_definitions( -xCore-AVX2 )
+  add_definitions(-xHOST)
 endif ()
 # ========================================== #
 

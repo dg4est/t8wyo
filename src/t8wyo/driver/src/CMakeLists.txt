@@ -16,6 +16,9 @@ add_executable(t8wyo3d.mpi main.F90)
 # link shared library to executable
 target_link_libraries(t8wyo3d.mpi t8wyo-driver ${MPI_Fortran_LIBRARIES})
 
+# set linker to Fortran compiler
+set_target_properties(t8wyo3d.mpi PROPERTIES LINKER_LANGUAGE Fortran)
+
 # install executables and libraries
 install(TARGETS t8wyo-driver t8wyo3d.mpi
         RUNTIME DESTINATION bin/
