@@ -63,7 +63,7 @@ CC=mpicc
 CXX=mpicxx
 
 C_FLAGS=
-CXX_FLAGS=
+CXX_FLAGS="-std=gnu++17"
 Fortran_FLAGS=
 
 # ======================== #

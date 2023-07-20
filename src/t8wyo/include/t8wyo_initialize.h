@@ -19,6 +19,7 @@
 #include <t8_cmesh/t8_cmesh_examples.h>
 #include <t8_schemes/t8_default/t8_default_cxx.hxx>
 #include <t8_forest/t8_forest_general.h>
+#include <t8_forest/t8_forest_geometrical.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -68,9 +69,11 @@ t8wyo_build_forest(t8_cmesh_t cmesh,int level,sc_MPI_Comm comm);
 /** t8wyo connectivity construction.
  *
  * @param [in] forest   t8code forest data structure
- * @param [inout] ext   external solver data
  */
-void t8wyo_build_lists(t8_forest_t forest,external_t *ext);
+void t8wyo_build_lists_ext(t8_forest_t forest,
+                           wyo::memory<int> &face2cell,
+                           wyo::memory<int> &elem_info,
+                           wyo::memory<double> &elem_vol);
 
 #ifdef __cplusplus
 }

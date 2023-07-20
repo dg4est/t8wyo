@@ -36,6 +36,10 @@ t8_forest_t forest;
 t8_cmesh_t cmesh;
 t8wyo_t t8wyo;
 
+wyo::memory<int> face2cell;
+wyo::memory<int> elem_info;
+wyo::memory<Real> elem_vol;
+
 #ifdef __cplusplus
 }
 #endif

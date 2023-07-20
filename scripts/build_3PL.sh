@@ -46,7 +46,7 @@ FC=mpif90
 F77=mpif90
 
 CFLAGS="-fPIC -O2 -std=gnu99"
-
+CPPFLAGS="-fPIC -O2 -std=gnu++11"
 # ============ #
 # BLAS library #
 # ============ #
@@ -338,6 +338,7 @@ if [ ${BUILD_T8CODE} -eq 1 ]; then
               --without-blas                                        \
               "CC=$CC" "CXX=$CXX" "FC=$FC" "F77=$FC"                \
               "CFLAGS=$CFLAGS"                                      \
+              "CPPFLAGS=$CPPFLAGS"                                  \
               | tee config.out
 
   #           --with-vtk=<VTK_LIBS>

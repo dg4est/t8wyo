@@ -274,7 +274,7 @@ class ctx_t {
 class t8wyo_t {
   public:
     ctx_t ctx;                        /**< Context data */
-    wyo::memory<external_t> external; /**< External solver data */
+  //wyo::memory<external_t> external; /**< External solver data */
 
     /* constructors */
     t8wyo_t()=default;

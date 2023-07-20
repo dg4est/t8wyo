@@ -24,6 +24,7 @@ endmacro()
 #SET_O2_FLAGS()
 
 # set C++17 standard for OCCA compatibility
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 
 # --------------------------------------------------------------------------- #

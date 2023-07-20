@@ -70,7 +70,17 @@ void t8wyo_build_cmesh_mcell_(int *level_cmesh,
     if(t8wyo.ctx.rank==0) printf("[t8wyo] COARSE MESH CONSTRUCTION: %f (sec)\n",cmesh_time);
 }
 
-void t8wyo_build_forest_(int *level_forest){
+void t8wyo_build_forest_(int *level_forest,
+                         int *ntetra,int *npyr,int *nprizm,int *nhex,
+                         int *ntetra_ng,int *npyr_ng,int *nprizm_ng,int *nhex_ng,
+                         int *nnode,int *ngpt){
+//                         int *nbface3,int *nbface4,
+//                         int *nface3,int *nface4,
+//                         int *ndc4,int *ndc5,int *ndc6,int *ndc8,
+//                         int *nbf3,int *nbf4,
+//                         int *ifpat3,int *ifpat4,
+//                         Real *xgeom,
+//                         int *ndf3,int *ndf4){
     /* build forest */
     Real forest_time;
     TIMER(forest_time,
@@ -78,15 +88,82 @@ void t8wyo_build_forest_(int *level_forest){
     );
 
     /* send back new grid info */
-//    ntetra;
-//    npyr;
-//    nprizm;
-//    nhex;
-//    ntetra_ng;
-//    npyr_ng;
-//    nprizm_ng;
-//    nhex_ng;
-//    nnode;
-//    ngpt;
+    t8_locidx_t num_trees,num_elems_in_tree,itree;
+    t8_eclass_scheme_c *ts;
+    int nelem_type[T8_ECLASS_COUNT] = {0};
+
+    num_trees = t8_forest_get_num_local_trees(forest);
+    for (itree = 0; itree < num_trees; itree++) {
+        ts = t8_forest_get_eclass_scheme(forest,t8_forest_get_tree_class(forest,itree));
+        num_elems_in_tree = t8_forest_get_tree_num_elements(forest,itree);
+
+        // add to element type count
+        nelem_type[ts->eclass] += num_elems_in_tree;
+    }
+
+    /* set local element counts */
+    *ntetra = nelem_type[T8_ECLASS_TET];
+    *npyr = nelem_type[T8_ECLASS_PYRAMID];
+    *nprizm = nelem_type[T8_ECLASS_PRISM];
+    *nhex = nelem_type[T8_ECLASS_HEX];
+
+    /* set local element ghost type counts */
+    // TODO: get ghost element type counts
+    *ntetra_ng = 0;
+    *npyr_ng = 0;
+    *nprizm_ng = 0;
+    *nhex_ng = 0;
+
+    //printf("T8WYO ELEM COUNTS: %d %d %d %d\n",*ntetra,*npyr,*nprizm,*nhex);
     if(t8wyo.ctx.rank==0) printf("[t8wyo] FOREST CONSTRUCTION: %f (sec)\n",forest_time);
+}
+
+void t8wyo_build_lists_(int *ncell_real,int *ncell,int *nface,
+                        int **face2cellptr,int **cellinfoptr,Real **cellvolptr){
+
+    /* construct face2cell,elem_info,elem_vol data structures */
+    Real lists_time;
+    TIMER(lists_time,
+        t8wyo_build_lists_ext(forest,face2cell,elem_info,elem_vol);
+    );
+
+    t8_locidx_t num_elements = t8_forest_get_local_num_elements(forest);
+    t8_locidx_t num_ghosts = t8_forest_get_num_ghosts(forest);
+
+    /* set counts */
+    *ncell_real = (int) num_elements;
+    *ncell = (int) (num_elements+num_ghosts);
+    *nface = face2cell.length()/2;
+
+    /* fill Fortran data */
+    *face2cellptr = face2cell.ptr();
+    *cellinfoptr = elem_info.ptr();
+    *cellvolptr = elem_vol.ptr();
+
+    if(t8wyo.ctx.rank==0) printf("[t8wyo] BUILD LISTS CONSTRUCTION: %f (sec)\n",lists_time);
+}
+
+void t8wyo_exchange_ghost_data_(void *data,size_t *bytes_per_element,int *barrier_flag){
+    t8_locidx_t num_elements = t8_forest_get_local_num_elements(forest);
+    t8_locidx_t num_ghosts = t8_forest_get_num_ghosts(forest);
+    Real exc_time;
+
+    TIMER(exc_time,
+        /* t8_forest_ghost_exchange_data expects an sc_array:
+         *    length = num_local_elements + num_ghosts
+         *    Wrap our data array to an sc_array.
+         */
+        sc_array *sc_array_wrapper = sc_array_new_data(data,
+                                                      *bytes_per_element,
+                                                       num_elements + num_ghosts);
+
+        /* exchange data: entries with indices > num_local_elements get overwritten */
+        t8_forest_ghost_exchange_data(forest,sc_array_wrapper);
+
+        /* destroy the wrapper array: this will not free the data memory since we used sc_array_new_data. */
+        sc_array_destroy(sc_array_wrapper);
+    );
+    if(*barrier_flag == 1) MPI_Barrier(t8wyo.ctx.comm);
+    if(t8wyo.ctx.rank==0) printf("[t8wyo] Exchange Time: %f (sec) w/ %zu bytes per elem\n",
+                                 exc_time,*bytes_per_element);
 }

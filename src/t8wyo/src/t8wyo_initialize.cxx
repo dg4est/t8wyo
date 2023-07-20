@@ -154,21 +154,22 @@ t8wyo_face2cell_fill(void **face,const void *data){
     return 1;
 }
 
-static int
-get_class(t8_eclass_t eclass){
-    switch(eclass){
-        case T8_ECLASS_TET:     return 4;
-        case T8_ECLASS_PYRAMID: return 5;
-        case T8_ECLASS_PRISM:   return 6;
-        case T8_ECLASS_HEX:     return 8;
-    }
-    return -1;
-}
-
-void t8wyo_build_lists(t8_forest_t forest,external_t *ext){
+void t8wyo_build_lists_ext(t8_forest_t forest,
+                           wyo::memory<int> &face2cell,
+                           wyo::memory<int> &elem_info,
+                           wyo::memory<double> &elem_vol){
     T8_ASSERT(t8_forest_is_committed(forest));
-    wyo::memory<int> elem_info;
-    wyo::memory<int> face2cell;
+
+    static int elem_class[] = { 0, // T8_ECLASS_ZERO,T8_ECLASS_VERTEX
+                                1, // T8_ECLASS_LINE,
+                                2, // T8_ECLASS_QUAD,
+                                3, // T8_ECLASS_TRIANGLE,
+                                8, // T8_ECLASS_HEX,
+                                4, // T8_ECLASS_TET,
+                                6, // T8_ECLASS_PRISM,
+                                5, // T8_ECLASS_PYRAMID,
+                               -1, // T8_ECLASS_COUNT
+                               -1};// T8_ECLASS_INVALID
 
     sc_mempool_t *face_mempool = sc_mempool_new(sizeof(t8wyo_face_full_t));
     sc_list_t *faces = sc_list_new(face_mempool);
@@ -181,14 +182,15 @@ void t8wyo_build_lists(t8_forest_t forest,external_t *ext){
     /* number of trees that have elements of this process */
     t8_locidx_t num_local_trees = t8_forest_get_num_local_trees(forest);
 
+    t8_locidx_t ghost_count = 0;
     t8_locidx_t elem_count = 0;
     t8_locidx_t face_count = 0;
 
     /* count number of local elements; allocate elem_info () */
-    for (t8_locidx_t itree = 0; itree < num_local_trees; ++itree) {
-        elem_count += t8_forest_get_tree_num_elements(forest,itree);
-    }
+    elem_count = t8_forest_get_local_num_elements(forest);
+    ghost_count = t8_forest_get_num_ghosts(forest);
     elem_info.malloc(INFO_ELEM_SIZE*elem_count,-1); // auto-deletes if pre-allocated
+    elem_vol.malloc(elem_count+ghost_count,-1.0);
 
     /* count max faces in forest; stash all faces into list */
     for (t8_locidx_t itree = 0,elem_index = 0; itree < num_local_trees; ++itree) {
@@ -203,8 +205,11 @@ void t8wyo_build_lists(t8_forest_t forest,external_t *ext){
 
             /* set local element information */
             int *einfo = &elem_info[INFO_ELEM_SIZE*elem_index];
-            einfo[ETYPE_IND] = get_class(tree_class);
+            einfo[ETYPE_IND] = elem_class[tree_class];
             einfo[ELEVL_IND] = eclass_scheme->t8_element_level(element);
+
+            /* initialize element's volume */
+            elem_vol[elem_index] = t8_forest_element_volume(forest,itree,element);
 
             /* loop over all faces of an element: count total neighboring elements */
             for (int iface = 0; iface < num_faces; iface++) {
