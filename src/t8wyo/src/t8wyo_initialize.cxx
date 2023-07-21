@@ -77,7 +77,7 @@ t8wyo_create_cmesh(char mode,const char *mshfile,mcell_t *mcell,
         t8_cmesh_init(&cmesh_partition);
         t8_cmesh_set_partition_uniform(cmesh_partition,level,t8_scheme_new_default_cxx());
         t8_cmesh_set_derive(cmesh_partition,cmesh);
-        t8_cmesh_commit(cmesh_partition, comm);
+        t8_cmesh_commit(cmesh_partition,comm);
         return cmesh_partition;
     } else
     if(mode == MESH_MODE_CART) {
@@ -107,6 +107,8 @@ typedef struct {
     int num_neighbors;      /* number of elements on face */
     int *dual_faces;        /* local face indices for neighbors */
     t8_locidx_t *neighids;  /* neighbor element indices */
+    Real normal[3];
+    Real area;
 }
 t8wyo_face_full_t;
 
@@ -114,6 +116,8 @@ typedef struct {
     t8_locidx_t e1; /* element 1 on face */
     t8_locidx_t e2; /* element 2 on face */
     t8_locidx_t face_index; /* local face index */
+    Real normal[3];
+    Real area;
 }
 t8wyo_face_t;
 
@@ -154,10 +158,22 @@ t8wyo_face2cell_fill(void **face,const void *data){
     return 1;
 }
 
+static int
+t8wyo_facenormal_fill(void **face,const void *data){
+    t8wyo_face_t *Face = *(t8wyo_face_t **) face;
+    Real *fnorm = (Real *) data;
+
+    fnorm[3*Face->face_index+0] = Face->normal[0]*Face->area;
+    fnorm[3*Face->face_index+1] = Face->normal[1]*Face->area;
+    fnorm[3*Face->face_index+2] = Face->normal[2]*Face->area;
+    return 1;
+}
+
 void t8wyo_build_lists_ext(t8_forest_t forest,
                            wyo::memory<int> &face2cell,
                            wyo::memory<int> &elem_info,
-                           wyo::memory<double> &elem_vol){
+                           wyo::memory<Real> &elem_vol,
+                           wyo::memory<Real> &face_norm){
     T8_ASSERT(t8_forest_is_committed(forest));
 
     static int elem_class[] = { 0, // T8_ECLASS_ZERO,T8_ECLASS_VERTEX
@@ -219,6 +235,8 @@ void t8wyo_build_lists_ext(t8_forest_t forest,
                 /* allocate face and set element id */
                 t8wyo_face_full_t *Face = (t8wyo_face_full_t *) sc_mempool_alloc(face_mempool);
                 Face->elem_id = elem_index;
+                Face->area = t8_forest_element_face_area(forest,itree,element,iface);
+                t8_forest_element_face_normal(forest,itree,element,iface,Face->normal);
 
                 /* collect all neighbors at current face */
                 t8_forest_leaf_face_neighbors(forest,itree,element,
@@ -257,6 +275,10 @@ void t8wyo_build_lists_ext(t8_forest_t forest,
                 /* set owner and neighbor element info */
                 Face->e1 = Face_full->elem_id;
                 Face->e2 = Face_full->neighids[ielem];
+                Face->area = Face_full->area;
+                Face->normal[0] = Face_full->normal[0];
+                Face->normal[1] = Face_full->normal[1];
+                Face->normal[2] = Face_full->normal[2];
 
                 /* try to insert the face into the hash */
                 if(sc_hash_insert_unique(faces_unique,Face,NULL)){
@@ -275,6 +297,10 @@ void t8wyo_build_lists_ext(t8_forest_t forest,
             /* set owner element info */
             Face->e1 = Face_full->elem_id;
             Face->e2 = -1;
+            Face->area = Face_full->area;
+            Face->normal[0] = Face_full->normal[0];
+            Face->normal[1] = Face_full->normal[1];
+            Face->normal[2] = Face_full->normal[2];
 
             /* try to insert the face into the hash */
             if(sc_hash_insert_unique(faces_unique,Face,NULL)) {
@@ -304,6 +330,11 @@ void t8wyo_build_lists_ext(t8_forest_t forest,
     face2cell.malloc(2*face_unique_count,-1);
     faces_unique->user_data = face2cell.ptr(); // set user_data for loop
     sc_hash_foreach(faces_unique,t8wyo_face2cell_fill);
+
+    /* allocate and fill face normals (non-normalized) */
+    face_norm.malloc(3*face_unique_count,-1.0);
+    faces_unique->user_data = face_norm.ptr(); // set user_data for loop
+    sc_hash_foreach(faces_unique,t8wyo_facenormal_fill);
 
     /* free unique face mempool/hash */
     sc_mempool_destroy(face_unique_mempool);

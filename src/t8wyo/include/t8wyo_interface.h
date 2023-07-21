@@ -42,7 +42,8 @@ void t8wyo_build_forest_(int *level_forest,
 //                         int *ndf3,int *ndf4);
 
 void t8wyo_build_lists_(int *ncell_real,int *ncell,int *nface,
-                        int **face2cellptr,int **cellinfoptr,Real **cellvolptr);
+                        int **face2cellptr,int **cellinfoptr,
+                        Real **cellvolptr,Real **facenormptr);
 
 void t8wyo_exchange_ghost_data_(void *data,
                                 size_t *bytes_per_element,

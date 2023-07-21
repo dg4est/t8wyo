@@ -119,12 +119,13 @@ void t8wyo_build_forest_(int *level_forest,
 }
 
 void t8wyo_build_lists_(int *ncell_real,int *ncell,int *nface,
-                        int **face2cellptr,int **cellinfoptr,Real **cellvolptr){
+                        int **face2cellptr,int **cellinfoptr,
+                        Real **cellvolptr,Real **facenormptr){
 
     /* construct face2cell,elem_info,elem_vol data structures */
     Real lists_time;
     TIMER(lists_time,
-        t8wyo_build_lists_ext(forest,face2cell,elem_info,elem_vol);
+        t8wyo_build_lists_ext(forest,face2cell,elem_info,elem_vol,face_norm);
     );
 
     t8_locidx_t num_elements = t8_forest_get_local_num_elements(forest);
@@ -139,6 +140,7 @@ void t8wyo_build_lists_(int *ncell_real,int *ncell,int *nface,
     *face2cellptr = face2cell.ptr();
     *cellinfoptr = elem_info.ptr();
     *cellvolptr = elem_vol.ptr();
+    *facenormptr = face_norm.ptr();
 
     if(t8wyo.ctx.rank==0) printf("[t8wyo] BUILD LISTS CONSTRUCTION: %f (sec)\n",lists_time);
 }

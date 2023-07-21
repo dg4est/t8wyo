@@ -73,8 +73,8 @@ t8wyo_build_forest(t8_cmesh_t cmesh,int level,sc_MPI_Comm comm);
 void t8wyo_build_lists_ext(t8_forest_t forest,
                            wyo::memory<int> &face2cell,
                            wyo::memory<int> &elem_info,
-                           wyo::memory<double> &elem_vol);
-
+                           wyo::memory<Real> &elem_vol,
+                           wyo::memory<Real> &face_norm);
 #ifdef __cplusplus
 }
 #endif
