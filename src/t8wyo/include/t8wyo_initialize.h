@@ -70,8 +70,10 @@ t8wyo_build_forest(t8_cmesh_t cmesh,int level,sc_MPI_Comm comm);
  *
  * @param [in] forest   t8code forest data structure
  */
-void t8wyo_build_lists_ext(t8_forest_t forest,
+void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
+                           t8_forest_t forest,
                            wyo::memory<int> &face2cell,
+                           wyo::memory<int> &facetype,
                            wyo::memory<int> &elem_info,
                            wyo::memory<Real> &elem_vol,
                            wyo::memory<Real> &face_norm);

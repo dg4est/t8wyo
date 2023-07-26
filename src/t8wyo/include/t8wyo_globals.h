@@ -37,6 +37,7 @@ t8_cmesh_t cmesh;
 t8wyo_t t8wyo;
 
 wyo::memory<int> face2cell;
+wyo::memory<int> ifacetype;
 wyo::memory<int> elem_info;
 wyo::memory<Real> elem_vol;
 wyo::memory<Real> face_norm;

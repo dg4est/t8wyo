@@ -29,6 +29,11 @@
 extern "C" {
 #endif
 
+/* offset for cmesh geometry info */
+#define T8WYO_CMESH_OFFSET_KEY  T8_CMESH_NEXT_POSSIBLE_KEY
+#define T8WYO_FID_KEY 0
+#define T8WYO_FTYPE_KEY 1
+
 /* =============== */
 /* data structures */
 /* =============== */
