@@ -73,9 +73,9 @@ t8wyo_mcell_node_hash(const void *node,const void *num_nodes){
  * u_data is not needed.
  */
 static int
-t8wyo_mcell_node_compare (const void *node_a,
-                               const void *node_b,
-                               const void *u_data){
+t8wyo_mcell_node_compare(const void *node_a,
+                         const void *node_b,
+                         const void *u_data){
     t8wyo_mcell_node_t *Node_a = (t8wyo_mcell_node_t *) node_a;
     t8wyo_mcell_node_t *Node_b = (t8wyo_mcell_node_t *) node_b;
     return Node_a->index == Node_b->index;
@@ -262,8 +262,8 @@ t8_cmesh_mcell_elements(const mcell_t *mcell,t8_cmesh_t cmesh,
 /* struct stores all information associated to a tree's face */
 typedef struct {
     t8_gloidx_t gtree_id; /* global id of the tree this face belongs */
-    int8_t face_number;   /* number of that face within the tree */
-    long *vertices;       /* indices of these vertices */
+    int8_t face_number; /* number of that face within the tree */
+    long *vertices; /* indices of these vertices */
     t8_locidx_t num_vertices; /* number of vertices of this face */
     t8_locidx_t face_id_orig; /* original face id */
 }
@@ -273,7 +273,8 @@ typedef struct {
     t8_cmesh_t cmesh;
     sc_hash_t *bf3,*bf4;
     sc_mempool_t *bf3_mempool,*bf4_mempool;
-} cmell_hash_info;
+}
+cmell_hash_info;
 
 void assemble_nbface_list(int nvert,sc_hash_t *bf,sc_mempool_t *bf_mempool,
                           int nbface,int *nbf){
@@ -284,10 +285,10 @@ void assemble_nbface_list(int nvert,sc_hash_t *bf,sc_mempool_t *bf_mempool,
         Face->num_vertices = nvert;         // save vertices for hashing
 
         Face->vertices = T8_ALLOC(long,nvert);
-        Face->vertices[0] = nbf[nvert*face_it + 0]-FBASE;
-        Face->vertices[1] = nbf[nvert*face_it + 1]-FBASE;
-        Face->vertices[2] = nbf[nvert*face_it + 2]-FBASE;
-        if(nvert>3) Face->vertices[3] = nbf[nvert*face_it + 3]-FBASE;
+        Face->vertices[0] = (long) (nbf[nvert*face_it + 0]-FBASE);
+        Face->vertices[1] = (long) (nbf[nvert*face_it + 1]-FBASE);
+        Face->vertices[2] = (long) (nbf[nvert*face_it + 2]-FBASE);
+        if(nvert>3) Face->vertices[3] = (long) (nbf[nvert*face_it + 3]-FBASE);
 
         /* insert boundary face into hash list */
         int ret = sc_hash_insert_unique(bf,Face,NULL);
@@ -381,31 +382,35 @@ t8_mcell_face_set_boundary(void **face,const void *data){
     if(retval){
         bFace = *found;
 #if 0
-        if(Face->num_vertices == 3){
-            printf("MATCH: %ld %ld\n"
+        if(bFace->face_id_orig <=3){
+            if(Face->num_vertices == 3){
+                printf("MATCH: %ld %ld\n"
+                       "       %ld %ld\n"
+                       "       %ld %ld\n",
+                       Face->vertices[0],bFace->vertices[0],
+                       Face->vertices[1],bFace->vertices[1],
+                       Face->vertices[2],bFace->vertices[2]);
+            } else {
+                printf("MATCH: %ld %ld\n"
+                   "       %ld %ld\n"
                    "       %ld %ld\n"
                    "       %ld %ld\n",
                    Face->vertices[0],bFace->vertices[0],
                    Face->vertices[1],bFace->vertices[1],
-                   Face->vertices[2],bFace->vertices[2]);
-        } else {
-            printf("MATCH: %ld %ld\n"
-               "       %ld %ld\n"
-               "       %ld %ld\n"
-               "       %ld %ld\n",
-               Face->vertices[0],bFace->vertices[0],
-               Face->vertices[1],bFace->vertices[1],
-               Face->vertices[2],bFace->vertices[2],
-               Face->vertices[3],bFace->vertices[3]);
+                   Face->vertices[2],bFace->vertices[2],
+                   Face->vertices[3],bFace->vertices[3]);
+            }
+            printf("Original bFace Face ID: %d\n",bFace->face_id_orig);
+            printf("SET FACE to orig id=%d\n",bFace->face_id_orig);
         }
-        printf("Original bFace Face ID: %d\n",bFace->face_id_orig);
 #endif
-        /* save boundary face information */
-        t8_locidx_t face_info[] = {-(bFace->face_id_orig), // negative face id
-                                      Face->num_vertices}; // save # vertices
+        /* save boundary face information: negative face id, number of vertices */
+        t8_locidx_t face_info[] = {-(bFace->face_id_orig),Face->num_vertices};
+
+        /* stash boundary info into cmesh global tree */
         t8_cmesh_set_attribute(cmesh,gtree_id,t8_get_package_id(),
-                               T8WYO_CMESH_OFFSET_KEY,
-                               face_info,sizeof(face_info),0);
+                               T8WYO_CMESH_OFFSET_KEY+Face->face_number, // offset by face index
+                              &face_info,sizeof(face_info),0);
 
         /* free the found face here */
         sc_hash_remove(hash,bFace,NULL);
@@ -544,10 +549,11 @@ t8wyo_cmesh_mcell_find_neighbors(mcell_t *mcell,
             face_class = (t8_eclass_t) t8_eclass_face_types[eclass][face_it];
             num_face_vertices = t8_eclass_num_vertices[face_class];
 
-            Face->vertices = T8_ALLOC(long,num_face_vertices);
-            Face->num_vertices = num_face_vertices;
             Face->gtree_id = gtree_it;
             Face->face_number = face_it;
+            Face->face_id_orig = -1;
+            Face->num_vertices = num_face_vertices;
+            Face->vertices = T8_ALLOC(long,num_face_vertices);
 
             /* copy the vertices of the face to the face struct */
             for (vertex_it = 0; vertex_it < num_face_vertices; vertex_it++) {

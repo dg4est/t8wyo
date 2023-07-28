@@ -32,8 +32,8 @@ extern "C" {
 #endif
 
 /* global t8wyo structure for interface code */
-t8_forest_t forest;
-t8_cmesh_t cmesh;
+t8_forest_t t8wyo_forest;
+t8_cmesh_t t8wyo_cmesh;
 t8wyo_t t8wyo;
 
 wyo::memory<int> face2cell;

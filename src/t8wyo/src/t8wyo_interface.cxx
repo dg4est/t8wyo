@@ -62,9 +62,9 @@ void t8wyo_build_cmesh_mcell_(int *level_cmesh,
     /* build coarse mesh */
     Real cmesh_time;
     TIMER(cmesh_time,
-        cmesh = t8wyo_create_cmesh(MESH_MODE_MCELL,NULL,&mcell,
-                                   *level_cmesh,dim,use_occ_geometry,
-                                   t8wyo.ctx.comm);
+        t8wyo_cmesh = t8wyo_create_cmesh(MESH_MODE_MCELL,NULL,&mcell,
+                                        *level_cmesh,dim,use_occ_geometry,
+                                         t8wyo.ctx.comm);
     );
 
     if(t8wyo.ctx.rank==0) printf("[t8wyo] COARSE MESH CONSTRUCTION: %f (sec)\n",cmesh_time);
@@ -84,7 +84,7 @@ void t8wyo_build_forest_(int *level_forest,
     /* build forest */
     Real forest_time;
     TIMER(forest_time,
-        forest = t8wyo_build_forest(cmesh,*level_forest,t8wyo.ctx.comm);
+        t8wyo_forest = t8wyo_build_forest(t8wyo_cmesh,*level_forest,t8wyo.ctx.comm);
     );
 
     /* send back new grid info */
@@ -92,10 +92,10 @@ void t8wyo_build_forest_(int *level_forest,
     t8_eclass_scheme_c *ts;
     int nelem_type[T8_ECLASS_COUNT] = {0};
 
-    num_trees = t8_forest_get_num_local_trees(forest);
+    num_trees = t8_forest_get_num_local_trees(t8wyo_forest);
     for (itree = 0; itree < num_trees; itree++) {
-        ts = t8_forest_get_eclass_scheme(forest,t8_forest_get_tree_class(forest,itree));
-        num_elems_in_tree = t8_forest_get_tree_num_elements(forest,itree);
+        ts = t8_forest_get_eclass_scheme(t8wyo_forest,t8_forest_get_tree_class(t8wyo_forest,itree));
+        num_elems_in_tree = t8_forest_get_tree_num_elements(t8wyo_forest,itree);
 
         // add to element type count
         nelem_type[ts->eclass] += num_elems_in_tree;
@@ -126,12 +126,12 @@ void t8wyo_build_lists_(int *ncell_real,int *ncell,int *nface,
     /* construct face2cell,facetype,elem_info,elem_vol data structures */
     Real lists_time;
     TIMER(lists_time,
-        t8wyo_build_lists_ext(cmesh,forest,face2cell,ifacetype,
+        t8wyo_build_lists_ext(t8wyo_cmesh,t8wyo_forest,face2cell,ifacetype,
                               elem_info,elem_vol,face_norm);
     );
 
-    t8_locidx_t num_elements = t8_forest_get_local_num_elements(forest);
-    t8_locidx_t num_ghosts = t8_forest_get_num_ghosts(forest);
+    t8_locidx_t num_elements = t8_forest_get_local_num_elements(t8wyo_forest);
+    t8_locidx_t num_ghosts = t8_forest_get_num_ghosts(t8wyo_forest);
 
     /* set counts */
     *ncell_real = (int) num_elements;
@@ -149,8 +149,8 @@ void t8wyo_build_lists_(int *ncell_real,int *ncell,int *nface,
 }
 
 void t8wyo_exchange_ghost_data_(void *data,size_t *bytes_per_element,int *barrier_flag){
-    t8_locidx_t num_elements = t8_forest_get_local_num_elements(forest);
-    t8_locidx_t num_ghosts = t8_forest_get_num_ghosts(forest);
+    t8_locidx_t num_elements = t8_forest_get_local_num_elements(t8wyo_forest);
+    t8_locidx_t num_ghosts = t8_forest_get_num_ghosts(t8wyo_forest);
     Real exc_time;
 
     TIMER(exc_time,
@@ -163,7 +163,7 @@ void t8wyo_exchange_ghost_data_(void *data,size_t *bytes_per_element,int *barrie
                                                        num_elements + num_ghosts);
 
         /* exchange data: entries with indices > num_local_elements get overwritten */
-        t8_forest_ghost_exchange_data(forest,sc_array_wrapper);
+        t8_forest_ghost_exchange_data(t8wyo_forest,sc_array_wrapper);
 
         /* destroy the wrapper array: this will not free the data memory since we used sc_array_new_data. */
         sc_array_destroy(sc_array_wrapper);

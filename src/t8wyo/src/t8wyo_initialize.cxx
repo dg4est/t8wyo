@@ -8,6 +8,7 @@
 /* header files */
 #include "t8wyo_initialize.h"
 #include <t8_vec.h>
+#include <inttypes.h>
 int t8wyo_initialize_libs(int argc,char **argv,ctx_t *ctx){
     /* ============== */
     /* initialize MPI */
@@ -171,29 +172,10 @@ t8wyo_facenormal_fill(void **face,const void *data){
     t8wyo_face_t *Face = *(t8wyo_face_t **) face;
     Real *fnorm = (Real *) data;
 
-    fnorm[3*Face->face_index+0] = Face->normal[0]*Face->area;
-    fnorm[3*Face->face_index+1] = Face->normal[1]*Face->area;
-    fnorm[3*Face->face_index+2] = Face->normal[2]*Face->area;
+    fnorm[3*Face->face_index+0] = -Face->normal[0]*Face->area;
+    fnorm[3*Face->face_index+1] = -Face->normal[1]*Face->area;
+    fnorm[3*Face->face_index+2] = -Face->normal[2]*Face->area;
     return 1;
-}
-
-static double
-t8_forest_element_triangle_area (double coordinates[3][3])
-{
-  double              v_1v_1, v_1v_2, v_2v_2;
-
-  /* Compute vectors v_1 and v_2 */
-  /* v_1 = v_1 - v_0 */
-  t8_vec_axpy (coordinates[0], coordinates[1], -1);
-  /* v_2 = v_2 - v_0 */
-  t8_vec_axpy (coordinates[0], coordinates[2], -1);
-  /* compute scalar products */
-  v_1v_1 = t8_vec_dot (coordinates[1], coordinates[1]);
-  v_1v_2 = t8_vec_dot (coordinates[1], coordinates[2]);
-  v_2v_2 = t8_vec_dot (coordinates[2], coordinates[2]);
-
-  /* compute determinant and half it */
-  return 0.5 * sqrt (fabs (v_1v_1 * v_2v_2 - v_1v_2 * v_1v_2));
 }
 
 void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
@@ -320,59 +302,6 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
                     /* face area */
                     Face->area = t8_forest_element_face_area(forest, Face_full->tree_id,
                                                              element,Face_full->face_number);
-
-//                    if(Face->e1 == 4226923 && Face->e2 == 4227257){
-//                        t8_eclass_t tree_class = t8_forest_get_tree_class(forest,Face_full->tree_id);
-//                        t8_eclass_scheme_c *ts = t8_forest_get_eclass_scheme(forest,tree_class);
-//                        t8_element_shape_t face_shape = ts->t8_element_face_shape(element,Face_full->face_number);
-//
-//                        double  coordinates[4][3];
-//                        double  coordinates1[3][3];
-//                        double  coordinates2[3][3];
-//                        int  i, face_corner;
-//
-//                        /* Compute the coordinates of the triangle's vertices */
-//                        for (i = 0; i < 4; i++) {
-//                            face_corner = ts->t8_element_get_face_corner(element, Face_full->face_number, i);
-//                            printf("FACE CORNER %d\n",face_corner);
-//                            t8_forest_element_coordinate (forest, Face_full->tree_id, element,
-//                                                          face_corner,coordinates[i]);
-//                        }
-//
-////                        for (i = 0; i < 3; i++) {
-////                            face_corner = ts->t8_element_get_face_corner(element, Face_full->face_number, i);
-////                            printf("FACE CORNER %d\n",face_corner);
-////                            t8_forest_element_coordinate (forest, Face_full->tree_id, element,
-////                                                          face_corner,coordinates1[i]);
-////                        }
-////                        for (i = 1; i < 4; i++) {
-////                            face_corner = ts->t8_element_get_face_corner(element, Face_full->face_number, i);
-////                            printf("FACE CORNER %d\n",face_corner);
-////                            t8_forest_element_coordinate (forest, Face_full->tree_id, element,
-////                                                          face_corner,coordinates2[i-1]);
-////                        }
-//
-//                        t8_forest_element_coordinate(forest, Face_full->tree_id, element,0,coordinates1[0]);
-//                        t8_forest_element_coordinate(forest, Face_full->tree_id, element,1,coordinates1[1]);
-//                        t8_forest_element_coordinate(forest, Face_full->tree_id, element,4,coordinates1[2]);
-//
-//                        t8_forest_element_coordinate(forest, Face_full->tree_id, element,1,coordinates2[0]);
-//                        t8_forest_element_coordinate(forest, Face_full->tree_id, element,4,coordinates2[1]);
-//                        t8_forest_element_coordinate(forest, Face_full->tree_id, element,3,coordinates2[2]);
-//
-//                        double area1 = t8_forest_element_triangle_area(coordinates1);
-//                        double area2 = t8_forest_element_triangle_area(coordinates2);
-//
-//                        printf("FACE AREA: %.16f %.16f = %.16f,%.16f\n",area1,area2,area1+area2,Face->area);
-//                        printf(" FACE AREA 1:   %.16f\n",area1);
-//                        printf(" FACE AREA 2:   %.16f\n",area2);
-//                        printf(" FACE AREA:     %.16f\n",area1+area2);
-//                        printf("   %.15f       %.15f       %.15f\n",coordinates[0][0],coordinates[0][1],coordinates[0][2]);
-//                        printf("   %.15f       %.15f       %.15f\n",coordinates[1][0],coordinates[1][1],coordinates[1][2]);
-//                        printf("   %.15f       %.15f       %.15f\n",coordinates[2][0],coordinates[2][1],coordinates[2][2]);
-//                        printf("   %.15f       %.15f       %.15f\n",coordinates[3][0],coordinates[3][1],coordinates[3][2]);
-//                        exit(0);
-//                    }
                     Face->face_index = face_unique_count;
                     face_unique_count++;
                 } else {
@@ -383,14 +312,14 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
         } else {
             /* boundary face */
             t8wyo_face_t *Face = (t8wyo_face_t *) sc_mempool_alloc(face_unique_mempool);
-
-            t8_locidx_t *face_info =
-                    (t8_locidx_t *) t8_cmesh_get_attribute(cmesh,t8_get_package_id(),
-                                                           T8WYO_CMESH_OFFSET_KEY,
-                                                           Face_full->tree_id);
+            t8_locidx_t cmesh_ltreeid = t8_forest_ltreeid_to_cmesh_ltreeid(forest,Face_full->tree_id);
+            t8_locidx_t *face_info = (t8_locidx_t *)
+                t8_cmesh_get_attribute(cmesh,t8_get_package_id(),
+                                       T8WYO_CMESH_OFFSET_KEY+Face_full->face_number,
+                                       cmesh_ltreeid);
             /* set owner element info */
             Face->e1 = Face_full->elem_id + FBASE;
-            Face->e2 = face_info[T8WYO_FID_KEY]; // edge id in cmesh (has FBASE)
+            Face->e2 = face_info[T8WYO_FID_KEY]; // face id in cmesh (has FBASE)
 
             /* try to insert the face into the hash */
             if(sc_hash_insert_unique(faces_unique,Face,NULL)) {
