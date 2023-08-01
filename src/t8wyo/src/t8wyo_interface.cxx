@@ -72,15 +72,7 @@ void t8wyo_build_cmesh_mcell_(int *level_cmesh,
 
 void t8wyo_build_forest_(int *level_forest,
                          int *ntetra,int *npyr,int *nprizm,int *nhex,
-                         int *ntetra_ng,int *npyr_ng,int *nprizm_ng,int *nhex_ng,
-                         int *nnode,int *ngpt){
-//                         int *nbface3,int *nbface4,
-//                         int *nface3,int *nface4,
-//                         int *ndc4,int *ndc5,int *ndc6,int *ndc8,
-//                         int *nbf3,int *nbf4,
-//                         int *ifpat3,int *ifpat4,
-//                         Real *xgeom,
-//                         int *ndf3,int *ndf4){
+                         int *ntetra_ng,int *npyr_ng,int *nprizm_ng,int *nhex_ng){
     /* build forest */
     Real forest_time;
     TIMER(forest_time,
@@ -148,7 +140,7 @@ void t8wyo_build_lists_(int *ncell_real,int *ncell,int *nface,
     if(t8wyo.ctx.rank==0) printf("[t8wyo] BUILD LISTS CONSTRUCTION: %f (sec)\n",lists_time);
 }
 
-void t8wyo_exchange_ghost_data_(void *data,size_t *bytes_per_element,int *barrier_flag){
+void t8wyo_exchange_ghost_data_(void *data,size_t *bytes_per_element,int *barrier_flag,int *mess_flag){
     t8_locidx_t num_elements = t8_forest_get_local_num_elements(t8wyo_forest);
     t8_locidx_t num_ghosts = t8_forest_get_num_ghosts(t8wyo_forest);
     Real exc_time;
@@ -169,6 +161,89 @@ void t8wyo_exchange_ghost_data_(void *data,size_t *bytes_per_element,int *barrie
         sc_array_destroy(sc_array_wrapper);
     );
     if(*barrier_flag == 1) MPI_Barrier(t8wyo.ctx.comm);
-    if(t8wyo.ctx.rank==0) printf("[t8wyo] Exchange Time: %f (sec) w/ %zu bytes per elem\n",
-                                 exc_time,*bytes_per_element);
+    if(*mess_flag == 1 && t8wyo.ctx.rank==0) printf("[t8wyo] Exchange Time: %f (sec) w/ %zu bytes per elem\n",
+                                                    exc_time,*bytes_per_element);
+}
+
+void t8wyo_write_vtk_(int *vtk_counter,Real *wvalues_in){
+    t8_locidx_t num_local_elements,ielem;
+    t8_vtk_data_field_t vtk_data[5];
+    double *wvalues[5];
+    char fileprefix[BUFSIZ];
+
+    if(t8wyo.ctx.rank==0) printf("[t8wyo] Outputting VTK...\n");
+
+    Real vtk_time;
+    TIMER(vtk_time,
+        /* Allocate num_local_elements doubles to store flow */
+        num_local_elements = t8_forest_get_local_num_elements(t8wyo_forest);
+
+        /* density */
+        wvalues[0] = T8_ALLOC_ZERO (Real,num_local_elements);
+        /* u */
+        wvalues[1] = T8_ALLOC_ZERO (Real,num_local_elements);
+        /* v */
+        wvalues[2] = T8_ALLOC_ZERO (Real,num_local_elements);
+        /* w */
+        wvalues[3] = T8_ALLOC_ZERO (Real,num_local_elements);
+        /* E */
+        wvalues[4] = T8_ALLOC_ZERO (Real,num_local_elements);
+
+        /* fill flow variables */
+        for (ielem = 0; ielem < num_local_elements; ielem++) {
+            const Real *W = &wvalues_in[5*ielem];
+            const Real iDensity = 1.0/W[0];
+
+            wvalues[0][ielem] = W[0];
+            wvalues[1][ielem] = W[1]*iDensity;
+            wvalues[2][ielem] = W[2]*iDensity;
+            wvalues[3][ielem] = W[3]*iDensity;
+            wvalues[4][ielem] = W[4];
+        }
+
+        /* write meta data for vtk */
+        snprintf(vtk_data[0].description, BUFSIZ, "Density");
+        vtk_data[0].type = T8_VTK_SCALAR;
+        vtk_data[0].data = wvalues[0];
+
+        snprintf(vtk_data[1].description, BUFSIZ, "Flow-U");
+        vtk_data[1].type = T8_VTK_SCALAR;
+        vtk_data[1].data = wvalues[1];
+
+        snprintf(vtk_data[2].description, BUFSIZ, "Flow-V");
+        vtk_data[2].type = T8_VTK_SCALAR;
+        vtk_data[2].data = wvalues[2];
+
+        snprintf(vtk_data[3].description, BUFSIZ, "Flow-W");
+        vtk_data[3].type = T8_VTK_SCALAR;
+        vtk_data[3].data = wvalues[3];
+
+        snprintf(vtk_data[4].description, BUFSIZ, "Energy");
+        vtk_data[4].type = T8_VTK_SCALAR;
+        vtk_data[4].data = wvalues[4];
+
+        /* write filename */
+        snprintf(fileprefix, BUFSIZ, "t8wyo_flow_%03i",*vtk_counter);
+
+        /* write vtk files */
+        t8_forest_write_vtk_ext(t8wyo_forest,fileprefix,
+                                1, //write_treeid
+                                1, //write_mpirank
+                                1, //write_level
+                                1, //write_element_id
+                                0, //write_ghosts
+                                0, //write_curved
+                                0, //do_not_use_API
+                                5, //num_data
+                                vtk_data);
+
+        /* clean-up */
+        T8_FREE (wvalues[0]);
+        T8_FREE (wvalues[1]);
+        T8_FREE (wvalues[2]);
+        T8_FREE (wvalues[3]);
+        T8_FREE (wvalues[4]);
+    );
+    /* display vtk message */
+    if(t8wyo.ctx.rank==0) printf("[t8wyo] VTK Complete: %f (sec)\n",vtk_time);
 }

@@ -24,6 +24,7 @@ file(GLOB SRC_H *.h *.hxx)
 # src files
 set(SRC
     t8wyo_cmesh_from_mcell.cxx
+    t8wyo_build_lists_ext.cxx
     t8wyo_initialize.cxx
     t8wyo_interface.cxx
 )
