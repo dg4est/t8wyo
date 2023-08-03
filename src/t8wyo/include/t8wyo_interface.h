@@ -11,6 +11,7 @@
 /* header files */
 #include "t8wyo_globals.h"
 #include "t8wyo_initialize.h"
+#include "t8wyo_adapt.h"
 
 /* system header files */
 #include <mpi.h>
@@ -46,6 +47,9 @@ void t8wyo_exchange_ghost_data_(void *data,
                                 size_t *bytes_per_element,
                                 int *barrier_flag,
                                 int *mess_flag);
+
+void t8wyo_adapt_(void (*tag_callback)(int *,int *),int *ncell,
+                  Real *wvalues,Real **wvalues_new);
 
 void t8wyo_write_vtk_(int *vtk_counter,Real *wvalues_in);
 

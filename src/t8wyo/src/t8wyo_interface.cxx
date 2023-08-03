@@ -165,6 +165,12 @@ void t8wyo_exchange_ghost_data_(void *data,size_t *bytes_per_element,int *barrie
                                                     exc_time,*bytes_per_element);
 }
 
+void t8wyo_adapt_(void (*tag_callback)(int *,int *),int *ncell,
+                  Real *wvalues,Real **wvalues_new){
+    t8wyo_adapt_ext(t8wyo_forest,t8wyo_forest_adapt,
+                    wvalues,wvalues_new);
+}
+
 void t8wyo_write_vtk_(int *vtk_counter,Real *wvalues_in){
     t8_locidx_t num_local_elements,ielem;
     t8_vtk_data_field_t vtk_data[5];
@@ -236,7 +242,6 @@ void t8wyo_write_vtk_(int *vtk_counter,Real *wvalues_in){
                                 0, //do_not_use_API
                                 5, //num_data
                                 vtk_data);
-
         /* clean-up */
         T8_FREE (wvalues[0]);
         T8_FREE (wvalues[1]);
