@@ -35,8 +35,7 @@ void t8wyo_build_cmesh_mcell_(int *level_cmesh,
                               Real *xgeom,
                               int *ndf3,int *ndf4);
 
-void t8wyo_build_forest_(int *level_forest,
-                         int *ntetra,int *npyr,int *nprizm,int *nhex,
+void t8wyo_build_forest_(int *ntetra,int *npyr,int *nprizm,int *nhex,
                          int *ntetra_ng,int *npyr_ng,int *nprizm_ng,int *nhex_ng);
 
 void t8wyo_build_lists_(int *ncell_real,int *ncell,int *nface,

@@ -71,13 +71,12 @@ void t8wyo_build_cmesh_mcell_(int *level_cmesh,
     if(t8wyo.ctx.rank==0) printf("[t8wyo] COARSE MESH CONSTRUCTION: %f (sec)\n",cmesh_time);
 }
 
-void t8wyo_build_forest_(int *level_forest,
-                         int *ntetra,int *npyr,int *nprizm,int *nhex,
+void t8wyo_build_forest_(int *ntetra,int *npyr,int *nprizm,int *nhex,
                          int *ntetra_ng,int *npyr_ng,int *nprizm_ng,int *nhex_ng){
     /* build forest */
     Real forest_time;
     TIMER(forest_time,
-        t8wyo_forest = t8wyo_build_forest(t8wyo_cmesh,*level_forest,t8wyo.ctx.comm);
+        t8wyo_forest = t8wyo_build_forest(t8wyo_cmesh,0,t8wyo.ctx.comm);
     );
 
     /* send back new grid info */
