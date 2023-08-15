@@ -19,8 +19,8 @@ int t8wyo_initialize_libs(int argc,char **argv,ctx_t *ctx){
     /* initialize sc and p4est */
     /* ======================= */
     sc_init(ctx->comm,1,1,NULL,SC_LP_DEFAULT);
-    p4est_init(NULL,SC_LP_DEFAULT);
-    t8_init(SC_LP_DEFAULT);
+    p4est_init(NULL,SC_LP_ERROR);
+    t8_init(SC_LP_PRODUCTION);
 
     /* ======================== */
     /* assign MPI rank and size */
@@ -42,8 +42,8 @@ void t8wyo_initialize_libs_from_comm(MPI_Comm *comm,ctx_t *ctx){
     /* initialize sc and p4est */
     /* ======================= */
     sc_init(ctx->comm,1,1,NULL,SC_LP_ALWAYS);
-    p4est_init(NULL,SC_LP_DEFAULT);
-    t8_init(SC_LP_DEFAULT);
+    p4est_init(NULL,SC_LP_ERROR);
+    t8_init(SC_LP_PRODUCTION);
 
     /* ======================== */
     /* assign MPI rank and size */

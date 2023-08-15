@@ -37,29 +37,29 @@ Real memory_usage(int mpi_rank,int display){
     /* get malloc info structure */
     struct mallinfo my_mallinfo = mallinfo();
 
-    /*total memory reserved by the system for malloc currently */
-    Real reserved_mem = my_mallinfo.arena;
+    /* total memory reserved by the system for malloc currently */
+    Real reserved_mem = (Real) my_mallinfo.arena;
 
     /* get all the memory currently allocated to user by malloc, etc. */
-    Real used_mem = my_mallinfo.hblkhd
-                  + my_mallinfo.usmblks
-                  + my_mallinfo.uordblks;
+    Real used_mem = (Real) my_mallinfo.hblkhd
+                  + (Real) my_mallinfo.usmblks
+                  + (Real) my_mallinfo.uordblks;
 
     /* get memory not currently allocated to user but malloc controls */
-    Real free_mem = my_mallinfo.fsmblks
-                  + my_mallinfo.fordblks;
+    Real free_mem = (Real) my_mallinfo.fsmblks
+                  + (Real) my_mallinfo.fordblks;
 
     /* get number of items currently allocated */
     /* double number_allocated = my_mallinfo.ordblks + my_mallinfo.smblks; */
 
     /* Print out concise malloc info line */
     if (display) {
-        DGOUT(stdout,"Rank[%d]: %f MB(%.0f) malloc: %f MB reserved (%.0f unused)\n",
+        DGOUT(stdout,"Rank[%d]: %f MB(%.0f) malloc: %f MB reserved (%f unused)\n",
               mpi_rank,
               used_mem / (1024.0 * 1024.0),
               used_mem,
               reserved_mem / (1024.0 * 1024.0),
-              free_mem);
+              free_mem / (1024.0 * 1024.0));
     }
     return used_mem;
 #else
@@ -72,7 +72,7 @@ Real memory_state(Real mem1,Real mem2,int mpi_rank,int display){
     Real mem_diff= mem2 - mem1;
 
     if (display) {
-        DGOUT(stdout,"\033[1;32m[Memory] Rank[%d]: %f MB(%.0f) difference \033[0m\n",
+        DGOUT(stdout,"\033[1;32m[Memory] Rank[%d]: %f MB(%.0f) difference \033[0\n",
               mpi_rank,
               mem_diff / (1024.0 * 1024.0),
               mem_diff);

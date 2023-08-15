@@ -171,8 +171,10 @@ void t8wyo_exchange_ghost_data_(void *data,size_t *bytes_per_element,int *barrie
         sc_array_destroy(sc_array_wrapper);
     );
     if(*barrier_flag == 1) MPI_Barrier(t8wyo.ctx.comm);
-    if(*mess_flag == 1 && t8wyo.ctx.rank==0) printf("[t8wyo] Exchange Time: %f (sec) w/ %zu bytes per elem\n",
-                                                    exc_time,*bytes_per_element);
+    if(*mess_flag == 1 && t8wyo.ctx.rank==0){
+        printf("[t8wyo] Exchange Time: %f (sec) w/ %zu bytes per elem\n",
+               exc_time,*bytes_per_element);
+    }
 }
 
 void t8wyo_adapt_(tag_callback_t *tag_function,
@@ -189,6 +191,7 @@ void t8wyo_adapt_(tag_callback_t *tag_function,
 
     /* set external solution pointer */
     *wvalues_new = t8wyo_wvalues.ptr();
+    if(t8wyo.ctx.rank==0) memory_usage(0,1);
 }
 
 void t8wyo_write_vtk_(int *vtk_counter,Real *wvalues_in){

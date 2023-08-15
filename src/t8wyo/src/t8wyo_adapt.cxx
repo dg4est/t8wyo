@@ -68,6 +68,7 @@ int t8wyo_tag_callback(t8_forest_t forest,
                        t8_element_t *elements[]){
     t8_locidx_t offset = t8_forest_get_tree_element_offset(forest_from,ltree_id);
     t8_locidx_t ielement = lelement_id + offset;
+    int level = ts->t8_element_level(elements[0]);
     int tag;
 
     // retrieve external callback tagging function
@@ -81,7 +82,7 @@ int t8wyo_tag_callback(t8_forest_t forest,
     // tag: (1) refine this element
     //      (0) do not change this element
     //     (-1) coarsen this element (only is_family=1)
-    (*(adapt_info->tag_func))(&ielement,&nvar,Wvalues_cell,&tag);
+    (*(adapt_info->tag_func))(&ielement,&level,&nvar,Wvalues_cell,&tag);
 
     // if coarsen, check if is_family, since returning < 0 is illegal
     if(tag == -1) return (is_family) ? -1:0;
