@@ -33,7 +33,6 @@ extern "C" {
 
 /* global t8wyo structure for interface code */
 t8_forest_t t8wyo_forest;
-t8_forest_t t8wyo_forest_adapt;
 t8_cmesh_t t8wyo_cmesh;
 t8wyo_t t8wyo;
 
@@ -42,6 +41,8 @@ wyo::memory<int> ifacetype;
 wyo::memory<int> elem_info;
 wyo::memory<Real> elem_vol;
 wyo::memory<Real> face_norm;
+wyo::memory<Real> t8wyo_wvalues;
+wyo::memory<Real> t8wyo_wvalues_new;
 
 #ifdef __cplusplus
 }

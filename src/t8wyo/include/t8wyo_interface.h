@@ -18,6 +18,7 @@
 
 T8WYO_EXTERN_C_BEGIN();
 
+/* functions */
 void t8wyo_interface_init_(MPI_Comm comm);
 
 void t8wyo_interface_fortran_init_(int *fcomm);
@@ -48,7 +49,10 @@ void t8wyo_exchange_ghost_data_(void *data,
                                 int *barrier_flag,
                                 int *mess_flag);
 
-void t8wyo_adapt_(void (*tag_callback)(int *,int *),int *ncell,
+void t8wyo_allocate_solution_(int *nvar,int *ncell,Real **wvalues_new);
+
+void t8wyo_adapt_(tag_callback_t *tag_function,
+                  int *nvar,int *ncell,int *ncell_real,
                   Real *wvalues,Real **wvalues_new);
 
 void t8wyo_write_vtk_(int *vtk_counter,Real *wvalues_in);

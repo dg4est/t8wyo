@@ -334,8 +334,8 @@ if [ ${BUILD_T8CODE} -eq 1 ]; then
   ./configure --prefix=${INSTALL_T8CODE_DIRECTORY}                  \
               --exec-prefix=${INSTALL_T8CODE_DIRECTORY}             \
               --enable-shared --disable-static                      \
-              --disable-debug --enable-mpi                          \
-              --without-blas                                        \
+	      --disable-debug --enable-mpi                          \
+              --without-blas --disable-memalign                     \
               "CC=$CC" "CXX=$CXX" "FC=$FC" "F77=$FC"                \
               "CFLAGS=$CFLAGS"                                      \
               "CPPFLAGS=$CPPFLAGS"                                  \
@@ -349,7 +349,10 @@ if [ ${BUILD_T8CODE} -eq 1 ]; then
   # copy internal t8code header files for mcell cmesh construction
   cp src/t8_cmesh/t8_cmesh_types.h ${INSTALL_T8CODE_DIRECTORY}/include/t8_cmesh/.
   cp src/t8_cmesh/t8_cmesh_stash.h ${INSTALL_T8CODE_DIRECTORY}/include/t8_cmesh/.
-
+  cp src/t8_forest/t8_forest_private.h ${INSTALL_T8CODE_DIRECTORY}/include/t8_forest/.
+  cp src/t8_forest/t8_forest_ghost.h ${INSTALL_T8CODE_DIRECTORY}/include/t8_forest/.
+  cp src/t8_forest/t8_forest_types.h ${INSTALL_T8CODE_DIRECTORY}/include/t8_forest/.
+  cp src/t8_forest/t8_forest_balance.h ${INSTALL_T8CODE_DIRECTORY}/include/t8_forest/.
   cd ${CURRENT_PATH}
 
   if [ ! -d "${INSTALL_T8CODE_DIRECTORY}" ]; then

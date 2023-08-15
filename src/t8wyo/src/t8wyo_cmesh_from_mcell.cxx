@@ -83,13 +83,10 @@ t8wyo_mcell_node_compare(const void *node_a,
 
 /* create node hash table from mcell data */
 static sc_hash_t *
-t8wyo_mcell_nodes(const mcell_t *mcell,sc_mempool_t **node_mempool){
+t8wyo_mcell_nodes(const mcell_t *mcell,t8wyo_mcell_node_t *node_mempool){
     t8wyo_mcell_node_t *Node;
     t8_locidx_t n;
     int retval;
-
-    /* create mempool for nodes */
-    *node_mempool = sc_mempool_new(sizeof(t8wyo_mcell_node_t));
 
     /* create hash table */
     sc_hash_t *node_table = sc_hash_new(t8wyo_mcell_node_hash,
@@ -99,7 +96,7 @@ t8wyo_mcell_nodes(const mcell_t *mcell,sc_mempool_t **node_mempool){
 
     /* set each node and add it to the hash table */
     for (n = 0; n < mcell->nnode; n++) {
-        Node = (t8wyo_mcell_node_t *) sc_mempool_alloc(*node_mempool);
+        Node = &node_mempool[n];
 
         /* fill node entries */
         Node->coordinates[0] = mcell->xgeom[3*n+0];
@@ -166,7 +163,6 @@ correct_neg_volume(t8_eclass eclass,double *tree_vertices,int tree_id){
             tree_vertices[3 * switch_indices[iswitch] + i] = temp;
         }
     }
-    T8_ASSERT(!t8_cmesh_tree_vertices_negative_volume(eclass, tree_vertices, num_nodes));
 }
 
 static void
@@ -659,7 +655,6 @@ t8_cmesh_from_mcell(mcell_t *mcell,
                     int dim,int use_occ_geometry){
     t8_cmesh_t cmesh;
     sc_hash_t *vertices = NULL;
-    sc_mempool_t *node_mempool = NULL;
     sc_array_t *vertex_indices = NULL;
     long *indices_entry;
     int mpirank,mpisize,mpiret;
@@ -680,19 +675,24 @@ t8_cmesh_from_mcell(mcell_t *mcell,
         /* set dimension */
         t8_cmesh_set_dimension(cmesh,dim);
 
+        /* allocate node memory pool (auto deallocates out of scope */
+        wyo::memory<t8wyo_mcell_node_t> node_mempool(mcell->nnode);
+
         /* set vertices from mcell data */
-        vertices = t8wyo_mcell_nodes(mcell,&node_mempool);
+        vertices = t8wyo_mcell_nodes(mcell,node_mempool.ptr());
 
         /* set vertices */
         t8_cmesh_mcell_elements(mcell,cmesh,vertices,&vertex_indices,
                                 linear_geometry,use_occ_geometry,occ_geometry);
 
+        /* clean up memory before continuing */
+        if(vertices != NULL) sc_hash_destroy(vertices);
+        node_mempool.free();
+
         /* set faces */
         t8wyo_cmesh_mcell_find_neighbors(mcell,cmesh,vertex_indices);
 
-        if(vertices != NULL) sc_hash_destroy(vertices);
-        sc_mempool_destroy(node_mempool);
-
+        /* cleanup remaining memory */
         while (vertex_indices->elem_count > 0) {
             indices_entry = *(long **) sc_array_pop(vertex_indices);
             T8_FREE(indices_entry);

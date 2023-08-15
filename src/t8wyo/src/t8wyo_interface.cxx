@@ -7,6 +7,7 @@
 
 /* header files */
 #include "t8wyo_interface.h"
+#include "memory_utilities.h"
 
 void t8wyo_interface_init_(MPI_Comm comm){
     t8wyo_initialize_libs_from_comm(&comm,&t8wyo.ctx);
@@ -113,9 +114,10 @@ void t8wyo_build_forest_(int *level_forest,
 void t8wyo_build_lists_(int *ncell_real,int *ncell,int *nface,
                         int **face2cellptr,int **ifacetypeptr,
                         int **cellinfoptr,
-                        Real **cellvolptr,Real **facenormptr){
-
+                        Real **cellvolptr,
+                        Real **facenormptr){
     /* construct face2cell,facetype,elem_info,elem_vol data structures */
+    if(t8wyo.ctx.rank==0) std::cout << "[t8wyo] BUILDING CONNECTIVITY LISTS..."; std::cout.flush();
     Real lists_time;
     TIMER(lists_time,
         t8wyo_build_lists_ext(t8wyo_cmesh,t8wyo_forest,face2cell,ifacetype,
@@ -137,7 +139,15 @@ void t8wyo_build_lists_(int *ncell_real,int *ncell,int *nface,
     *cellvolptr = elem_vol.ptr();
     *facenormptr = face_norm.ptr();
 
-    if(t8wyo.ctx.rank==0) printf("[t8wyo] BUILD LISTS CONSTRUCTION: %f (sec)\n",lists_time);
+    if(t8wyo.ctx.rank==0) {std::cout << "done: " << lists_time << " (sec)" << std::endl;}
+}
+
+void t8wyo_allocate_solution_(int *nvar,int *ncell,Real **wvalues_new){
+    /* allocate solution */
+    t8wyo_wvalues.malloc((*nvar)*(*ncell));
+
+    /* fill Fortran data */
+    *wvalues_new = t8wyo_wvalues.ptr();
 }
 
 void t8wyo_exchange_ghost_data_(void *data,size_t *bytes_per_element,int *barrier_flag,int *mess_flag){
@@ -165,10 +175,20 @@ void t8wyo_exchange_ghost_data_(void *data,size_t *bytes_per_element,int *barrie
                                                     exc_time,*bytes_per_element);
 }
 
-void t8wyo_adapt_(void (*tag_callback)(int *,int *),int *ncell,
+void t8wyo_adapt_(tag_callback_t *tag_function,
+                  int *nvar,int *ncell,int *ncell_real,
                   Real *wvalues,Real **wvalues_new){
-    t8wyo_adapt_ext(t8wyo_forest,t8wyo_forest_adapt,
-                    wvalues,wvalues_new);
+    /* adapt the grid*/
+    t8wyo_forest = t8wyo_adapt_ext(t8wyo_forest,
+                                   tag_function,nvar,ncell,ncell_real,
+                                   wvalues,t8wyo_wvalues_new);
+
+    /* swap pointers and clean the old element data */
+    t8wyo_wvalues.swap(t8wyo_wvalues_new);
+    t8wyo_wvalues_new.free();
+
+    /* set external solution pointer */
+    *wvalues_new = t8wyo_wvalues.ptr();
 }
 
 void t8wyo_write_vtk_(int *vtk_counter,Real *wvalues_in){

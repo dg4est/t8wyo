@@ -10,10 +10,12 @@
 
 /* header files */
 #include "t8wyo_solver.hxx"
+#include "t8wyo_forest_aux.h"
 
 /* 3PL header files */
 #include <sc.h>
 #include <t8.h>
+#include <t8_element_c_interface.h>
 #include <t8_cmesh/t8_cmesh_types.h>
 #include <t8_schemes/t8_default/t8_default_cxx.hxx>
 #include <t8_forest/t8_forest_general.h>
@@ -41,8 +43,7 @@ typedef struct {
     t8_locidx_t elem_id;    /* local element id this face belongs to */
     int face_number;     /* face number within the element */
     int num_neighbors;      /* number of elements on face */
-    int *dual_faces;        /* local face indices for neighbors */
-    t8_locidx_t *neighids;  /* neighbor element indices */
+    t8_locidx_t neighids[4];  /* neighbor element indices */
 }
 t8wyo_face_full_t;
 

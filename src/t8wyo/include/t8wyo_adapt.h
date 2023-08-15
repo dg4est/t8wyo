@@ -10,6 +10,7 @@
 
 /* header files */
 #include "precision_types.h"
+#include "memory.hxx"
 
 /* 3PL header files */
 #include <t8_forest/t8_forest_general.h>
@@ -19,8 +20,24 @@
 extern "C" {
 #endif
 
-void t8wyo_adapt_ext(t8_forest_t forest,t8_forest_t forest_adapt,
-                     Real *wvalues,Real **wvalues_new);
+/* function templates */
+typedef void (*tag_callback_t)(int *elem_id,
+                               int *nvar,
+                               Real *Wvalues_cell,
+                               int *tag);
+
+typedef struct {
+    tag_callback_t *tag_func; /**< tagging callback function */
+    Real *wvalues;            /**< solution values */
+    Real *wvalues_new;        /**< new solution values */
+    int nvar;                 /**< number of variables per cell */
+}
+adapt_info_t;
+
+t8_forest_t t8wyo_adapt_ext(t8_forest_t forest,
+                            tag_callback_t *tag_function,
+                            int *nvar_in,int *ncell,int *ncell_real,
+                            Real *wvalues,wyo::memory<Real> &wvalues_new);
 
 int t8wyo_tag_callback(t8_forest_t forest, t8_forest_t forest_from,
                        t8_locidx_t ltree_id, t8_locidx_t lelement_id,

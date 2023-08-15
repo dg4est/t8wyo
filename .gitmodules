@@ -1,4 +1,5 @@
 [submodule "3PL/t8code"]
 	path = 3PL/t8code
-    url = https://github.com/DLR-AMR/t8code.git
-    ignore = dirty
+	url = https://github.com/DLR-AMR/t8code.git
+	branch = main
+	ignore = dirty

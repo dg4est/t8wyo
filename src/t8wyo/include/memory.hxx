@@ -200,9 +200,11 @@ class memory {
     }
 
     void free() {
-        shrdPtr = nullptr;
-        lngth=0;
-        offset=0;
+        if(shrdPtr){
+            shrdPtr = nullptr;
+            lngth=0;
+            offset=0;
+        }
     }
 };
 
