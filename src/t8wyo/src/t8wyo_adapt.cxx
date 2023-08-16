@@ -101,9 +101,8 @@ void t8wyo_adapt_replace(t8_forest_t forest_old,
                          t8_locidx_t which_tree,
                          t8_eclass_scheme_c *ts,
                          int refine,
-                         int num_outgoing,
-                         t8_locidx_t first_outgoing,
-                         int num_incoming, t8_locidx_t first_incoming){
+                         int num_outgoing,t8_locidx_t first_outgoing,
+                         int num_incoming,t8_locidx_t first_incoming){
     adapt_info_t *adapt_info = (adapt_info_t *) t8_forest_get_user_data(forest_new);
     const int nvar = adapt_info->nvar;
 
@@ -141,13 +140,18 @@ void t8wyo_adapt_replace(t8_forest_t forest_old,
 
         /* Compute average of solution */
         Real wtotal[nvar] = {0.0};
+        Real voltotal = {0.0};
         for (i = 0; i < num_outgoing; i++) {
+            t8_element_t *element = t8_forest_get_element_in_tree(forest_old,which_tree,first_outgoing+i);
+            Real vol = t8_forest_element_volume(forest_old,first_outgoing+i,element);
+            voltotal += vol;
+
             elem_data_out = &adapt_info->wvalues[nvar*(first_outgoing_data+i)];
             for (n = 0; n < nvar; n++) {
-                wtotal[n] += elem_data_out[n];
+                wtotal[n] += elem_data_out[n]*vol;
             }
         }
-        for(n = 0; n < nvar; n++) wtotal[n] /= num_outgoing;
+        for(n = 0; n < nvar; n++) wtotal[n] /= (voltotal);
 
         elem_data_in = &adapt_info->wvalues_new[nvar*first_incoming_data];
         memcpy(elem_data_in, wtotal, nvar*sizeof(Real));

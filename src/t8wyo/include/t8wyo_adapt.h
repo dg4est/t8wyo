@@ -15,6 +15,7 @@
 /* 3PL header files */
 #include <t8_forest/t8_forest_general.h>
 #include <t8_forest/t8_forest_iterate.h>
+#include <t8_forest/t8_forest_geometrical.h>
 #include <t8_schemes/t8_default/t8_default_cxx.hxx>
 
 #ifdef __cplusplus

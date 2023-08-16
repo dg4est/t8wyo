@@ -140,7 +140,6 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
                 Face->face_number = iface;
 
                 /* collect neighbors info at current face */
-                // WARNING: THIS FUNCTION HAS MEMORY LEAKS (from t8code)
                 t8wyo_forest_leaf_face_neighbors(forest,itree,element,iface,
                                                 &Face->num_neighbors, /*< Number of neighbors for each face */
                                                  Face->neighids,      /*< Indices of the neighbor elements */
