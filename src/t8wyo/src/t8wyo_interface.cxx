@@ -251,7 +251,7 @@ void t8wyo_write_vtk_(int *vtk_counter,Real *wvalues_in){
         vtk_data[4].data = wvalues[4];
 
         /* write filename */
-        snprintf(fileprefix, BUFSIZ, "t8wyo_flow_%03i",*vtk_counter);
+        snprintf(fileprefix, BUFSIZ, "./solution/t8wyo_flow_%03i",*vtk_counter);
 
         /* write vtk files */
         t8_forest_write_vtk_ext(t8wyo_forest,fileprefix,

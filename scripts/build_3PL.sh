@@ -335,7 +335,7 @@ if [ ${BUILD_T8CODE} -eq 1 ]; then
               --exec-prefix=${INSTALL_T8CODE_DIRECTORY}             \
               --enable-shared --disable-static                      \
 	      --disable-debug --enable-mpi                          \
-              --without-blas --disable-memalign                     \
+              --without-blas                                        \
               "CC=$CC" "CXX=$CXX" "FC=$FC" "F77=$FC"                \
               "CFLAGS=$CFLAGS"                                      \
               "CPPFLAGS=$CPPFLAGS"                                  \
