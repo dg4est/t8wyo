@@ -63,7 +63,7 @@ CC=mpicc
 CXX=mpicxx
 
 C_FLAGS=
-CXX_FLAGS=
+CXX_FLAGS="-std=gnu++17"
 Fortran_FLAGS=
 
 # ======================== #
@@ -75,7 +75,7 @@ BUILD_TYPE="Release"
 # ======================== #
 # make and install command #
 # ======================== #
-MAKE_CMD="make -j4 install"
+MAKE_CMD="make install"
 
 # ============= #
 # print strings #
@@ -319,6 +319,7 @@ if [ $BUILD_T8WYO == 1 ]; then
 
   cmake -D CMAKE_C_COMPILER=${CC_PATH}                              \
         -D CMAKE_CXX_COMPILER=${CXX_PATH}                           \
+        -D CMAKE_Fortran_COMPILER=${FC_PATH}                        \
         -D CMAKE_C_FLAGS=${C_FLAGS}                                 \
         -D CMAKE_CXX_FLAGS=${CXX_FLAGS}                             \
         -D CMAKE_Fortran_FLAGS=${Fortran_FLAGS}                     \
@@ -326,7 +327,6 @@ if [ $BUILD_T8WYO == 1 ]; then
         -D CMAKE_INSTALL_PREFIX=${COMPILE_INSTALL_T8WYO_DIRECTORY}  \
         -D CMAKE_BUILD_TYPE=${BUILD_TYPE}                           \
         -D metis_dir=${METIS_DIRECTORY}                             \
-        -D p4est_dir=${P4EST_DIRECTORY}                             \
         -D t8code_dir=${T8CODE_DIRECTORY}                           \
         -G "Unix Makefiles" ${T8WYO_DIRECTORY} | tee cmake_config.out
 

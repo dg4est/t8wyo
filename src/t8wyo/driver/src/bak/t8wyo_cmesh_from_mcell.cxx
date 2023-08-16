@@ -19,12 +19,12 @@ const int t8wyo_mcell_tree_vertex_to_t8_vertex_num[T8_ECLASS_COUNT][8]
   {0, 1, 3, 2},                 /* QUAD */
   {0, 1, 2},                    /* TRIANGLE */
   {0, 1, 3, 2, 4, 5, 7, 6},     /* HEX */
-  {0, 2, 1, 3},                 /* TET */
-  {0, 1, 2, 3, 4, 5},           /* PRISM */
+  {1, 2, 3, 0},                 /* TET */
+  {0, 1, 2, 3, 4, 5, 6},        /* PRISM */
   {0, 1, 3, 2, 4}               /* PYRAMID */
 };
 
-/* translate the t8code vertex number to the mcell file vertex number.
+/* translate the t8code vertex number to the .msh file vertex number.
  * See also (1) https://github.com/DLR-AMR/t8code/wiki/Build-Cmesh
  *          (2) https://server.scientific-sims.com/cfdlab/scientific-sims/solver-file-formats.html#mcell-format-description
  */
@@ -35,8 +35,8 @@ const int t8wyo_vertex_to_mcell_vertex_num[T8_ECLASS_COUNT][8]
   {0, 1, 3, 2},                 /* QUAD */
   {0, 1, 2},                    /* TRIANGLE */
   {0, 1, 3, 2, 4, 5, 7, 6},     /* HEX */
-  {0, 2, 1, 3},                 /* TET */
-  {0, 1, 2, 3, 4, 5},           /* PRISM */
+  {1, 2, 3, 0},                 /* TET */
+  {0, 1, 2, 3, 4, 5, 6},        /* PRISM */
   {0, 1, 3, 2, 4}               /* PYRAMID */
 };
 
@@ -73,9 +73,9 @@ t8wyo_mcell_node_hash(const void *node,const void *num_nodes){
  * u_data is not needed.
  */
 static int
-t8wyo_mcell_node_compare(const void *node_a,
-                         const void *node_b,
-                         const void *u_data){
+t8wyo_mcell_node_compare (const void *node_a,
+                               const void *node_b,
+                               const void *u_data){
     t8wyo_mcell_node_t *Node_a = (t8wyo_mcell_node_t *) node_a;
     t8wyo_mcell_node_t *Node_b = (t8wyo_mcell_node_t *) node_b;
     return Node_a->index == Node_b->index;
@@ -83,10 +83,13 @@ t8wyo_mcell_node_compare(const void *node_a,
 
 /* create node hash table from mcell data */
 static sc_hash_t *
-t8wyo_mcell_nodes(const mcell_t *mcell,t8wyo_mcell_node_t *node_mempool){
+t8wyo_mcell_nodes(const mcell_t *mcell,sc_mempool_t **node_mempool){
     t8wyo_mcell_node_t *Node;
     t8_locidx_t n;
     int retval;
+
+    /* create mempool for nodes */
+    *node_mempool = sc_mempool_new(sizeof(t8wyo_mcell_node_t));
 
     /* create hash table */
     sc_hash_t *node_table = sc_hash_new(t8wyo_mcell_node_hash,
@@ -96,7 +99,7 @@ t8wyo_mcell_nodes(const mcell_t *mcell,t8wyo_mcell_node_t *node_mempool){
 
     /* set each node and add it to the hash table */
     for (n = 0; n < mcell->nnode; n++) {
-        Node = &node_mempool[n];
+        Node = (t8wyo_mcell_node_t *) sc_mempool_alloc(*node_mempool);
 
         /* fill node entries */
         Node->coordinates[0] = mcell->xgeom[3*n+0];
@@ -127,7 +130,7 @@ correct_neg_volume(t8_eclass eclass,double *tree_vertices,int tree_id){
     int switch_indices[4] = { 0 };
     T8_ASSERT(t8_eclass_to_dimension[eclass] == 3);
 
-    printf("Correcting negative volume of tree %i\n",tree_id);
+    printf("Correcting negative volume of tree %li\n",tree_id);
     switch (eclass) {
         case T8_ECLASS_TET:
             /* We switch vertex 0 and vertex 3 */
@@ -163,6 +166,7 @@ correct_neg_volume(t8_eclass eclass,double *tree_vertices,int tree_id){
             tree_vertices[3 * switch_indices[iswitch] + i] = temp;
         }
     }
+    T8_ASSERT(!t8_cmesh_tree_vertices_negative_volume(eclass, tree_vertices, num_nodes));
 }
 
 static void
@@ -211,7 +215,7 @@ fill_element_class(t8_cmesh_t cmesh,sc_hash_t *vertices,sc_array_t **vertex_indi
             stored_indices = T8_ALLOC(long,t8_eclass_num_vertices[eclass]);
             for (i = 0; i < t8_eclass_num_vertices[eclass]; i++) {
                 /* Get the i-th node index in t8code order and store it. */
-                stored_indices[i] = node_indices[t8wyo_mcell_tree_vertex_to_t8_vertex_num[eclass][i]];
+                stored_indices[i] = node_indices[t8wyo_vertex_to_mcell_vertex_num[eclass][i]];
             }
             /* set the index array as a new entry in the array */
             *(long **) sc_array_push(*vertex_indices) = stored_indices;
@@ -257,41 +261,12 @@ t8_cmesh_mcell_elements(const mcell_t *mcell,t8_cmesh_t cmesh,
 
 /* struct stores all information associated to a tree's face */
 typedef struct {
-    t8_gloidx_t gtree_id; /* global id of the tree this face belongs */
-    int8_t face_number; /* number of that face within the tree */
-    long *vertices; /* indices of these vertices */
-    t8_locidx_t num_vertices; /* number of vertices of this face */
-    t8_locidx_t face_id_orig; /* original face id */
+    t8_locidx_t ltree_id; /* local id of the tree this face belongs */
+    int8_t face_number;   /* number of that face within the tree */
+    int num_vertices;     /* number of vertices of this face */
+    long *vertices;       /* indices of these vertices */
 }
 t8_mcell_face_t;
-
-typedef struct {
-    t8_cmesh_t cmesh;
-    sc_hash_t *bf3,*bf4;
-    sc_mempool_t *bf3_mempool,*bf4_mempool;
-}
-cmell_hash_info;
-
-void assemble_nbface_list(int nvert,sc_hash_t *bf,sc_mempool_t *bf_mempool,
-                          int nbface,int *nbf){
-    for(t8_locidx_t face_it = 0; face_it < nbface; face_it++){
-        t8_mcell_face_t *Face = (t8_mcell_face_t *) sc_mempool_alloc(bf_mempool);
-
-        Face->face_id_orig = face_it+FBASE; // save original face id for BC array
-        Face->num_vertices = nvert;         // save vertices for hashing
-
-        Face->vertices = T8_ALLOC(long,nvert);
-        Face->vertices[0] = (long) (nbf[nvert*face_it + 0]-FBASE);
-        Face->vertices[1] = (long) (nbf[nvert*face_it + 1]-FBASE);
-        Face->vertices[2] = (long) (nbf[nvert*face_it + 2]-FBASE);
-        if(nvert>3) Face->vertices[3] = (long) (nbf[nvert*face_it + 3]-FBASE);
-
-        /* insert boundary face into hash list */
-        int ret = sc_hash_insert_unique(bf,Face,NULL);
-        if(ret == 0) printf("NBFACE WARNING: Face already present in list: %d\n",
-                            Face->face_id_orig);
-    }
-}
 
 /* Hash a face. The hash value is the sum of its vertex indices */
 static unsigned
@@ -351,68 +326,22 @@ t8_mcell_face_free(void **face,const void *data){
  * We use this function in a loop over all hashed faces.
  */
 static int
-t8_mcell_face_set_boundary(void **face,const void *data){
-    cmell_hash_info *hash_info = (cmell_hash_info *) data;
-
-    t8_mcell_face_t *Face,**found,*bFace;
+t8_mcell_face_set_boundary(void **face, const void *data){
+    t8_mcell_face_t *Face;
     t8_gloidx_t gtree_id;
     t8_cmesh_t cmesh;
 
-    cmesh = hash_info->cmesh;
+    cmesh = (t8_cmesh_t) data;
     Face = *(t8_mcell_face_t **) face;
 
     /* get the global tree id */
-    gtree_id = Face->gtree_id;
+    gtree_id = Face->ltree_id;
 
-    /* set the Face as a domain boundary */
+    /* Set the Face as a domain boundary */
     t8_cmesh_set_join(cmesh,gtree_id,gtree_id,
                       Face->face_number,
                       Face->face_number,
                       0);
-
-    /* get boundary face id from vertices */
-    sc_hash_t *hash = (Face->num_vertices == 3) ? hash_info->bf3:hash_info->bf4;
-    sc_mempool_t *pool = (Face->num_vertices == 3) ? hash_info->bf3_mempool:hash_info->bf4_mempool;
-
-    int retval = sc_hash_lookup(hash,Face,(void ***) &found);
-    if(retval){
-        bFace = *found;
-#if 0
-        if(bFace->face_id_orig <=3){
-            if(Face->num_vertices == 3){
-                printf("MATCH: %ld %ld\n"
-                       "       %ld %ld\n"
-                       "       %ld %ld\n",
-                       Face->vertices[0],bFace->vertices[0],
-                       Face->vertices[1],bFace->vertices[1],
-                       Face->vertices[2],bFace->vertices[2]);
-            } else {
-                printf("MATCH: %ld %ld\n"
-                   "       %ld %ld\n"
-                   "       %ld %ld\n"
-                   "       %ld %ld\n",
-                   Face->vertices[0],bFace->vertices[0],
-                   Face->vertices[1],bFace->vertices[1],
-                   Face->vertices[2],bFace->vertices[2],
-                   Face->vertices[3],bFace->vertices[3]);
-            }
-            printf("Original bFace Face ID: %d\n",bFace->face_id_orig);
-            printf("SET FACE to orig id=%d\n",bFace->face_id_orig);
-        }
-#endif
-        /* save boundary face information: negative face id, number of vertices */
-        t8_locidx_t face_info[] = {-(bFace->face_id_orig),Face->num_vertices};
-
-        /* stash boundary info into cmesh global tree */
-        t8_cmesh_set_attribute(cmesh,gtree_id,t8_get_package_id(),
-                               T8WYO_CMESH_OFFSET_KEY+Face->face_number, // offset by face index
-                              &face_info,sizeof(face_info),0);
-
-        /* free the found face here */
-        sc_hash_remove(hash,bFace,NULL);
-        T8_FREE(bFace->vertices);
-        sc_mempool_free(pool,bFace);
-    }
     return 1;
 }
 
@@ -476,12 +405,11 @@ t8_mcell_face_orientation(t8_mcell_face_t *Face_a,
  * Use with care if cmesh is partitioned.
  */
 static void
-t8wyo_cmesh_mcell_find_neighbors(mcell_t *mcell,
-                                 t8_cmesh_t cmesh,
+t8wyo_cmesh_mcell_find_neighbors(t8_cmesh_t cmesh,
                                  sc_array_t *vertex_indices){
-    sc_hash_t *faces,*bf3,*bf4;
+    sc_hash_t *faces;
     t8_mcell_face_t *Face, **pNeighbor, *Neighbor;
-    sc_mempool_t *face_mempool,*bf3_mempool,*bf4_mempool;
+    sc_mempool_t *face_mempool;
     t8_gloidx_t gtree_it;
     t8_gloidx_t gtree_id,gtree_neighbor;
     t8_eclass_t eclass,face_class,neighbor_tclass;
@@ -491,20 +419,9 @@ t8wyo_cmesh_mcell_find_neighbors(mcell_t *mcell,
     t8_stash_class_struct_t *class_entry;
 
     face_mempool = sc_mempool_new(sizeof(t8_mcell_face_t));
-    bf3_mempool = sc_mempool_new(sizeof(t8_mcell_face_t));
-    bf4_mempool = sc_mempool_new(sizeof(t8_mcell_face_t));
-
-    bf3 = sc_hash_new(t8_mcell_face_hash,
-                      t8_mcell_face_equal,
-                      cmesh,NULL);
-    bf4 = sc_hash_new(t8_mcell_face_hash,
-                      t8_mcell_face_equal,
-                      cmesh,NULL);
-
-    cmell_hash_info hash_info = {cmesh,bf3,bf4,bf3_mempool,bf4_mempool};
     faces = sc_hash_new(t8_mcell_face_hash,
                         t8_mcell_face_equal,
-                        &hash_info,NULL);
+                        cmesh,NULL);
 
     /* TODO: Does currently not work with partitioned cmesh */
     T8_ASSERT(!cmesh->set_partition);
@@ -512,10 +429,6 @@ t8wyo_cmesh_mcell_find_neighbors(mcell_t *mcell,
     /* The cmesh is not allowed to be committed yet */
     T8_ASSERT(t8_cmesh_is_initialized(cmesh));
     t8_debugf("Starting to find tree neighbors\n");
-
-    /* assemble boundary base lists */
-    assemble_nbface_list(3,bf3,bf3_mempool,mcell->nbface3,mcell->nbf3);
-    assemble_nbface_list(4,bf4,bf4_mempool,mcell->nbface4,mcell->nbf4);
 
     /* iterate over all local trees */
     for (gtree_it = 0;
@@ -539,19 +452,18 @@ t8wyo_cmesh_mcell_find_neighbors(mcell_t *mcell,
 
         /* loop over all faces of the tree */
         for (face_it = 0; face_it < t8_eclass_num_faces[eclass]; face_it++) {
+
             Face = (t8_mcell_face_t *) sc_mempool_alloc(face_mempool);
 
             /* get its eclass and the number of vertices */
             face_class = (t8_eclass_t) t8_eclass_face_types[eclass][face_it];
             num_face_vertices = t8_eclass_num_vertices[face_class];
-
-            Face->gtree_id = gtree_it;
-            Face->face_number = face_it;
-            Face->face_id_orig = -1;
-            Face->num_vertices = num_face_vertices;
             Face->vertices = T8_ALLOC(long,num_face_vertices);
+            Face->num_vertices = num_face_vertices;
+            Face->ltree_id = gtree_it;
+            Face->face_number = face_it;
 
-            /* copy the vertices of the face to the face struct */
+            /* Copy the vertices of the face to the face struct */
             for (vertex_it = 0; vertex_it < num_face_vertices; vertex_it++) {
                 Face->vertices[vertex_it] = tree_vertices[t8_face_vertex_to_tree_vertex[eclass][face_it][vertex_it]];
             }
@@ -561,21 +473,21 @@ t8wyo_cmesh_mcell_find_neighbors(mcell_t *mcell,
             if (!retval) {
                 /* face was already in the hash */
                 Neighbor = *pNeighbor;
-                T8_ASSERT(Neighbor->gtree_id != gtree_it);
+                T8_ASSERT(Neighbor->ltree_id != gtree_it);
 
-                /* current tree is a neighbor to the tree Neighbor->gtree_id;
+                /* current tree is a neighbor to the tree Neighbor->ltree_id;
                  * need to identify the face number and the orientation
                  */
                 gtree_id = gtree_it;
-                gtree_neighbor = Neighbor->gtree_id;
+                gtree_neighbor = Neighbor->ltree_id;
 
                 /* compute the orientation of the face connection */
                 /* get the element class of the neighbor tree */
-                class_entry = (t8_stash_class_struct_t *) t8_sc_array_index_locidx(&cmesh->stash->classes,Neighbor->gtree_id);
-                T8_ASSERT(class_entry->id == Neighbor->gtree_id);
+                class_entry = (t8_stash_class_struct_t *) t8_sc_array_index_locidx(&cmesh->stash->classes,Neighbor->ltree_id);
+                T8_ASSERT(class_entry->id == Neighbor->ltree_id);
                 neighbor_tclass = class_entry->eclass;
 
-                /* calculate the orientation */
+                /* Calculate the orientation */
                 orientation = t8_mcell_face_orientation(Face,Neighbor,eclass,neighbor_tclass);
 
                 /* set the face connection */
@@ -601,16 +513,8 @@ t8wyo_cmesh_mcell_find_neighbors(mcell_t *mcell,
 
     /* free the faces and the hash */
     sc_hash_foreach(faces,t8_mcell_face_free);
-    sc_hash_foreach(bf3,t8_mcell_face_free);
-    sc_hash_foreach(bf4,t8_mcell_face_free);
-
     sc_mempool_destroy(face_mempool);
-    sc_mempool_destroy(bf3_mempool);
-    sc_mempool_destroy(bf4_mempool);
-
     sc_hash_destroy(faces);
-    sc_hash_destroy(bf3);
-    sc_hash_destroy(bf4);
     printf("Successfully constructed Tree Neighbors.\n");
 }
 
@@ -624,11 +528,11 @@ t8wyo_cmesh_mcell_find_neighbors(mcell_t *mcell,
  */
 static int
 t8_cmesh_from_mcell_register_geometries(t8_cmesh_t cmesh,
-                                        const int use_occ_geometry,
-                                        const int dim,
-                                        const char *fileprefix,
-                                        const t8_geometry_c **linear_geometry,
-                                        const t8_geometry_c **occ_geometry){
+                                             const int use_occ_geometry,
+                                             const int dim,
+                                             const char *fileprefix,
+                                             const t8_geometry_c **linear_geometry,
+                                             const t8_geometry_c **occ_geometry){
 
     /* register linear geometry */
     const t8_geometry_c *linear_geom = new t8_geometry_linear(dim);
@@ -650,11 +554,13 @@ t8_cmesh_from_mcell_register_geometries(t8_cmesh_t cmesh,
 }
 
 t8_cmesh_t
-t8_cmesh_from_mcell(mcell_t *mcell,
+t8_cmesh_from_mcell(const char *fileprefix,
                     int do_bcast,MPI_Comm comm,
                     int dim,int use_occ_geometry){
+    mcell_t mcell;
     t8_cmesh_t cmesh;
     sc_hash_t *vertices = NULL;
+    sc_mempool_t *node_mempool = NULL;
     sc_array_t *vertex_indices = NULL;
     long *indices_entry;
     int mpirank,mpisize,mpiret;
@@ -665,8 +571,14 @@ t8_cmesh_from_mcell(mcell_t *mcell,
     /* MCELL: 3D only */
     T8_ASSERT(dim==3);
 
+    /* suppress warning */
+    (void) fileprefix;
+
     mpiret = MPI_Comm_size(comm,&mpisize);
     mpiret = MPI_Comm_rank(comm,&mpirank);
+
+    /* read mcell file on rank 0 */
+    cell3d_read_mesh(mcell);
 
     if (!do_bcast || mpirank == 0) {
         /* initialize cmesh structure */
@@ -675,24 +587,19 @@ t8_cmesh_from_mcell(mcell_t *mcell,
         /* set dimension */
         t8_cmesh_set_dimension(cmesh,dim);
 
-        /* allocate node memory pool (auto deallocates out of scope */
-        wyo::memory<t8wyo_mcell_node_t> node_mempool(mcell->nnode);
-
         /* set vertices from mcell data */
-        vertices = t8wyo_mcell_nodes(mcell,node_mempool.ptr());
+        vertices = t8wyo_mcell_nodes(&mcell,&node_mempool);
 
         /* set vertices */
-        t8_cmesh_mcell_elements(mcell,cmesh,vertices,&vertex_indices,
+        t8_cmesh_mcell_elements(&mcell,cmesh,vertices,&vertex_indices,
                                 linear_geometry,use_occ_geometry,occ_geometry);
 
-        /* clean up memory before continuing */
-        if(vertices != NULL) sc_hash_destroy(vertices);
-        node_mempool.free();
-
         /* set faces */
-        t8wyo_cmesh_mcell_find_neighbors(mcell,cmesh,vertex_indices);
+        t8wyo_cmesh_mcell_find_neighbors(cmesh,vertex_indices);
 
-        /* cleanup remaining memory */
+        if(vertices != NULL) sc_hash_destroy(vertices);
+        sc_mempool_destroy(node_mempool);
+
         while (vertex_indices->elem_count > 0) {
             indices_entry = *(long **) sc_array_pop(vertex_indices);
             T8_FREE(indices_entry);
@@ -708,7 +615,7 @@ t8_cmesh_from_mcell(mcell_t *mcell,
     /* register the geometries for the cmesh */
     const int registered_geom_success =
         t8_cmesh_from_mcell_register_geometries(cmesh,use_occ_geometry,dim,
-                                                mcell->prefix,&linear_geometry,
+                                                mcell.prefix,&linear_geometry,
                                                &occ_geometry);
 
     if (!registered_geom_success) {
@@ -722,6 +629,7 @@ t8_cmesh_from_mcell(mcell_t *mcell,
     if(cmesh != NULL) t8_cmesh_commit(cmesh,comm);
 
     /* deallocate fortran data */
+    cell3d_deallocate_mesh();
     if(mpirank == 0) printf("Successfully constructed cmesh.\n");
     return cmesh;
 }

@@ -1,7 +1,11 @@
 enable_language(Fortran)
+find_package(MPI REQUIRED COMPONENTS Fortran)
+
+#set(CMAKE_Fortran_FLAGS
+# "${CMAKE_Fortran_FLAGS} -convert big_endian -assume buffered_io")
 
 set(CMAKE_Fortran_FLAGS
- "${CMAKE_Fortran_FLAGS} -convert big_endian -assume buffered_io")
+ "${CMAKE_Fortran_FLAGS} -fconvert=big-endian")
 
 # source files
 set(CELL_MOD_SRC

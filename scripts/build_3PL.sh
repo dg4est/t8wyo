@@ -46,7 +46,7 @@ FC=mpif90
 F77=mpif90
 
 CFLAGS="-fPIC -O2 -std=gnu99"
-
+CPPFLAGS="-fPIC -O2 -std=gnu++11"
 # ============ #
 # BLAS library #
 # ============ #
@@ -311,12 +311,12 @@ if [ ${BUILD_T8CODE} -eq 1 ]; then
   echo -e "${mC} ========================= ${eC}"
   echo " "
 
-  if [ ! -d "${INSTALL_METIS_DIRECTORY}" ]; then
-    echo "Error:"
-    echo "${INSTALL_METIS_DIRECTORY} does not exist."
-    echo " Please build Metis first: ./build_3PL.sh metis"
-    exit
-  fi
+#  if [ ! -d "${INSTALL_METIS_DIRECTORY}" ]; then
+#    echo "Error:"
+#    echo "${INSTALL_METIS_DIRECTORY} does not exist."
+#    echo " Please build Metis first: ./build_3PL.sh metis"
+#    exit
+#  fi
 
   cd ${PROJECT_ROOT}
   git submodule init    # init t8wyo submodules
@@ -334,11 +334,11 @@ if [ ${BUILD_T8CODE} -eq 1 ]; then
   ./configure --prefix=${INSTALL_T8CODE_DIRECTORY}                  \
               --exec-prefix=${INSTALL_T8CODE_DIRECTORY}             \
               --enable-shared --disable-static                      \
-              --disable-debug --enable-mpi                          \
+	      --disable-debug --enable-mpi                          \
               --without-blas                                        \
-              --with-metis=${INSTALL_METIS_DIRECTORY}               \
               "CC=$CC" "CXX=$CXX" "FC=$FC" "F77=$FC"                \
               "CFLAGS=$CFLAGS"                                      \
+              "CPPFLAGS=$CPPFLAGS"                                  \
               | tee config.out
 
   #           --with-vtk=<VTK_LIBS>
@@ -347,9 +347,12 @@ if [ ${BUILD_T8CODE} -eq 1 ]; then
   ${MAKE_CMD}
 
   # copy internal t8code header files for mcell cmesh construction
-  cp src/t8_cmesh/t8_cmesh_types.h ${INSTALL_T8CODE_DIRECTORY}/t8_cmesh/.
-  cp src/t8_cmesh/t8_cmesh_stash.h ${INSTALL_T8CODE_DIRECTORY}/t8_cmesh/.
-
+  cp src/t8_cmesh/t8_cmesh_types.h ${INSTALL_T8CODE_DIRECTORY}/include/t8_cmesh/.
+  cp src/t8_cmesh/t8_cmesh_stash.h ${INSTALL_T8CODE_DIRECTORY}/include/t8_cmesh/.
+  cp src/t8_forest/t8_forest_private.h ${INSTALL_T8CODE_DIRECTORY}/include/t8_forest/.
+  cp src/t8_forest/t8_forest_ghost.h ${INSTALL_T8CODE_DIRECTORY}/include/t8_forest/.
+  cp src/t8_forest/t8_forest_types.h ${INSTALL_T8CODE_DIRECTORY}/include/t8_forest/.
+  cp src/t8_forest/t8_forest_balance.h ${INSTALL_T8CODE_DIRECTORY}/include/t8_forest/.
   cd ${CURRENT_PATH}
 
   if [ ! -d "${INSTALL_T8CODE_DIRECTORY}" ]; then

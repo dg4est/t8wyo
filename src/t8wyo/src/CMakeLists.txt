@@ -23,36 +23,26 @@ file(GLOB SRC_H *.h *.hxx)
 
 # src files
 set(SRC
-    t8wyo_cell3d.cxx
+    t8wyo_forest_aux.cxx
     t8wyo_cmesh_from_mcell.cxx
-    amr_initialize.cxx
+    t8wyo_build_lists_ext.cxx
+    t8wyo_initialize.cxx
+    t8wyo_adapt.cxx
+    t8wyo_interface.cxx
 )
 
-# Fortran math kernels
-add_subdirectory(CELL3D)
-
 # build shared libraries
-add_library(t8wyo2d SHARED ${SRC} ${SRC_H} ${GIT_FILE})
 add_library(t8wyo3d SHARED ${SRC} ${SRC_H} ${GIT_FILE})
-target_compile_definitions(t8wyo2d PUBLIC -D_2D_)
-
-target_compile_definitions(t8wyo2d PUBLIC -DMPI_ON)
 target_compile_definitions(t8wyo3d PUBLIC -DMPI_ON)
+target_link_libraries(t8wyo3d ${sc_lb} ${t8code_lb} ${metis_lb} m)
 
-# link 3PL libraries to shared library
-target_link_libraries(t8wyo2d cell_solver_2d ${sc_lb} ${t8code_lb} ${metis_lb} m)
-target_link_libraries(t8wyo3d cell_solver_3d ${sc_lb} ${t8code_lb} ${metis_lb} m)
-
-# build executable
-add_executable(t8wyo2d.mpi main.cxx)
-add_executable(t8wyo3d.mpi main.cxx)
-
-# link shared library to executable
-target_link_libraries(t8wyo2d.mpi t8wyo2d)
-target_link_libraries(t8wyo3d.mpi t8wyo3d)
+#add_library(t8wyo2d SHARED ${SRC} ${SRC_H} ${GIT_FILE})
+#target_compile_definitions(t8wyo2d PUBLIC -D_2D_)
+#target_compile_definitions(t8wyo2d PUBLIC -DMPI_ON)
+#target_link_libraries(t8wyo2d ${sc_lb} ${t8code_lb} ${metis_lb} m)
 
 # install executables and libraries
-install(TARGETS t8wyo2d t8wyo3d t8wyo2d.mpi t8wyo3d.mpi
+install(TARGETS t8wyo3d
         RUNTIME DESTINATION bin/
         LIBRARY DESTINATION lib/
         ARCHIVE DESTINATION lib/
