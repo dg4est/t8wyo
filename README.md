@@ -1,6 +1,6 @@
 t8wyo
 =========
-t8wyo is an example software framework built on top of t8code.
+Software framework built for dynamic AMR intefacing with `t8code` library (https://github.com/DLR-AMR/t8code).  
 
 ---
 # 1. Obtaining the code
@@ -8,8 +8,8 @@ t8wyo is an example software framework built on top of t8code.
 
 ---
 # 2. Compilation
-    To compile t8wyo and the 3rd party libraries (t8code, metis):
-    ./makescript.sh <options>
+To compile t8wyo and the 3rd party libraries (t8code, metis):  
+    `./makescript.sh <options>`
 
 **Usage**: ./makescript.sh `{OPTIONS}`...`{COMPILER OPTIONS}`...`{3PL OPTIONS}`
 
@@ -35,11 +35,11 @@ t8wyo is an example software framework built on top of t8code.
 | --METIS              | -metis      | compile metis                                       |
 
 # Common Build Options:
-**Default (-go)**: Sets CC=mpicc CXX=mpicxx FC=mpif90
-    ./makescript.sh -go
+**Default (-go)**: Sets CC=mpicc CXX=mpicxx FC=mpif90  
+    `./makescript.sh -go`
 
-**Intel MPI (-impi)**: Sets CC=mpiicc CXX=mpiicpc FC=mpiifort
-    ./makescript.sh -impi
+**Intel MPI (-impi)**: Sets CC=mpiicc CXX=mpiicpc FC=mpiifort  
+    `./makescript.sh -impi`
 
 ---
 # 3. Dependencies
