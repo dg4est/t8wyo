@@ -38,12 +38,11 @@ extern "C" {
 /* =============== */
 /* struct stores all information associated to a elements face */
 typedef struct {
+    t8_element_t *elem;     /* local element */
     t8_locidx_t tree_id;    /* local tree id this face belongs to */
     t8_locidx_t lelem_id;   /* local element id in tree */
     t8_locidx_t elem_id;    /* local element id this face belongs to */
-    int face_number;     /* face number within the element */
-    int num_neighbors;      /* number of elements on face */
-    t8_locidx_t neighids[4];  /* neighbor element indices */
+    int face_number;        /* face number within the element */
 }
 t8wyo_face_full_t;
 
@@ -54,6 +53,7 @@ typedef struct {
     t8_locidx_t nvert;   /* number of face vertices */
     Real normal[3];
     Real area;
+    Real sign;
 }
 t8wyo_face_t;
 
