@@ -229,7 +229,6 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
             t8wyo_face_t *Face = (t8wyo_face_t *) sc_mempool_alloc(face_unique_mempool);
             Face->e1 = Face_full->elem_id + FBASE;
             Face->e2 = face_info[T8WYO_FID_KEY]; // face id in cmesh (FBASE included)
-            Face->sign = -1.0;
 
             /* try to insert the face into the hash */
             if (sc_hash_insert_unique(faces_unique,Face,NULL)) {
@@ -242,6 +241,7 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
                                               element,Face_full->face_number,
                                               Face->normal);
                 /* face area */
+                Face->sign = -1.0;
                 Face->area = t8_forest_element_face_area(forest, Face_full->tree_id,
                                                          element,Face_full->face_number);
 
