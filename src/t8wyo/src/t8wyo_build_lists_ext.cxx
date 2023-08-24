@@ -56,9 +56,10 @@ t8wyo_facenormal_fill(void **face,const void *data){
     t8wyo_face_t *Face = *(t8wyo_face_t **) face;
     Real *fnorm = (Real *) data;
 
-    fnorm[3*Face->face_index+0] = -Face->normal[0]*Face->area;
-    fnorm[3*Face->face_index+1] = -Face->normal[1]*Face->area;
-    fnorm[3*Face->face_index+2] = -Face->normal[2]*Face->area;
+    Real fac = Face->sign*Face->area;
+    fnorm[3*Face->face_index+0] = fac*Face->normal[0];
+    fnorm[3*Face->face_index+1] = fac*Face->normal[1];
+    fnorm[3*Face->face_index+2] = fac*Face->normal[2];
     return 1;
 }
 
@@ -97,16 +98,12 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
                                           t8wyo_face_equal,
                                           NULL,NULL);
 
-    /* number of trees that have elements of this process */
-    t8_locidx_t num_local_trees = t8_forest_get_num_local_trees(forest);
-
-    t8_locidx_t ghost_count = 0;
-    t8_locidx_t elem_count = 0;
-    t8_locidx_t face_count = 0;
-
     /* count number of local elements; allocate elem_info () */
-    elem_count = t8_forest_get_local_num_elements(forest);
-    ghost_count = t8_forest_get_num_ghosts(forest);
+    t8_locidx_t num_local_trees = t8_forest_get_num_local_trees(forest);
+    t8_locidx_t elem_count = t8_forest_get_local_num_elements(forest);
+    t8_locidx_t ghost_count = t8_forest_get_num_ghosts(forest);
+
+    wyo::memory<t8_locidx_t> elem2tree(elem_count,-1);
     elem_info.malloc(INFO_ELEM_SIZE*elem_count,-1); // auto-deletes if pre-allocated
     elem_vol.malloc(elem_count+ghost_count,-1.0);
 
@@ -129,24 +126,19 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
             /* initialize element's volume */
             elem_vol[elem_index] = t8_forest_element_volume(forest,itree,element);
 
+            /* save tree index for elem */
+            elem2tree[elem_index] = itree;
+
             /* loop over all faces of an element: count total neighboring elements */
             for (int iface = 0; iface < num_faces; iface++) {
 
                 /* allocate face and set element id */
                 t8wyo_face_full_t *Face = (t8wyo_face_full_t *) sc_mempool_alloc(face_mempool);
+                Face->elem = element;
                 Face->tree_id = itree;
                 Face->lelem_id = ielement;
-                Face->elem_id = elem_index;
                 Face->face_number = iface;
-
-                /* collect neighbors info at current face */
-                t8wyo_forest_leaf_face_neighbors(forest,itree,element,iface,
-                                                &Face->num_neighbors, /*< Number of neighbors for each face */
-                                                 Face->neighids,      /*< Indices of the neighbor elements */
-                                                 1);
-
-                /* update small face count */
-                face_count += Face->num_neighbors;
+                Face->elem_id = elem_index;
 
                 /* add face to faces list */
                 (void) sc_list_append(faces,Face);
@@ -159,39 +151,61 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
     int bface_count = 0;
     while(faces->elem_count > 0){
         t8wyo_face_full_t *Face_full = (t8wyo_face_full_t *) sc_list_pop(faces);
+        const int iface = Face_full->face_number;
 
-        if(Face_full->num_neighbors > 0){
+        // local variables
+        t8_eclass_scheme_c *neigh_scheme;
+        t8_element_t **neighs;
+        t8_locidx_t *neighids;
+        int *dual_faces;
+        int num_neighbors;
+
+        /* gather face neighbor element information */
+        t8_forest_leaf_face_neighbors(forest,
+                                      Face_full->tree_id,
+                                      Face_full->elem,
+                                     &neighs,iface,
+                                     &dual_faces,
+                                     &num_neighbors,
+                                     &neighids,
+                                     &neigh_scheme, 1);
+
+        if (num_neighbors > 0) {
             /* interior face:
              *  loop of elements on large face and
              *  construct neighbor info for each local small face
              */
-            for (int ielem = 0; ielem < Face_full->num_neighbors; ielem++) {
+            for (int ielem = 0; ielem < num_neighbors; ielem++) {
                 t8wyo_face_t *Face = (t8wyo_face_t *) sc_mempool_alloc(face_unique_mempool);
 
                 /* set owner and neighbor element info */
                 Face->e1 = Face_full->elem_id + FBASE;
-                Face->e2 = Face_full->neighids[ielem] + FBASE;
+                Face->e2 = neighids[ielem] + FBASE;
 
                 /* try to insert the face into the hash */
-                if(sc_hash_insert_unique(faces_unique,Face,NULL)){
+                if (sc_hash_insert_unique(faces_unique,Face,NULL)) {
                     /* compute geometry info */
-                    t8_element_t *element = t8_forest_get_element_in_tree(forest,
-                                                                          Face_full->tree_id,
-                                                                          Face_full->lelem_id);
-                    /* face normal */
-                    t8_forest_element_face_normal(forest, Face_full->tree_id,
-                                                  element,Face_full->face_number,
-                                                  Face->normal);
-                    /* face area */
-                    Face->area = t8_forest_element_face_area(forest, Face_full->tree_id,
-                                                             element,Face_full->face_number);
-                    Face->face_index = face_unique_count;
-                    face_unique_count++;
+                    char full = (num_neighbors == 1);
+                    t8_element_t *element = (full) ? Face_full->elem:neighs[ielem];
+                    t8_locidx_t tree_id = (full) ? Face_full->tree_id:elem2tree[neighids[ielem]];
+                    int face_number = (full) ? Face_full->face_number:dual_faces[ielem];
+
+                    /* face information */
+                    t8_forest_element_face_normal(forest,tree_id,element,face_number,Face->normal);
+                    Face->area = t8_forest_element_face_area(forest,tree_id,element,face_number);
+                    Face->sign = !full - full; // branchless sign: if(full) sign = -1, else face = +1
+                    Face->face_index = face_unique_count++;
                 } else {
                     /* face already existed: clean up memory */
                     sc_mempool_free(face_unique_mempool,Face);
                 }
             }
+
+            /* clean up memory */
+            neigh_scheme->t8_element_destroy(num_neighbors,neighs);
+            T8_FREE(neighs);
+            T8_FREE(dual_faces);
+            T8_FREE(neighids);
         } else {
             /* boundary face:
              *  compute base tree local information and
@@ -214,10 +228,10 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
             /* set owner element info */
             t8wyo_face_t *Face = (t8wyo_face_t *) sc_mempool_alloc(face_unique_mempool);
             Face->e1 = Face_full->elem_id + FBASE;
-            Face->e2 = face_info[T8WYO_FID_KEY]; // face id in cmesh (has FBASE)
+            Face->e2 = face_info[T8WYO_FID_KEY]; // face id in cmesh (FBASE included)
 
             /* try to insert the face into the hash */
-            if(sc_hash_insert_unique(faces_unique,Face,NULL)) {
+            if (sc_hash_insert_unique(faces_unique,Face,NULL)) {
                 /* compute geometry info */
                 element = t8_forest_get_element_in_tree(forest,
                                                         Face_full->tree_id,
@@ -227,6 +241,7 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
                                               element,Face_full->face_number,
                                               Face->normal);
                 /* face area */
+                Face->sign = -1.0;
                 Face->area = t8_forest_element_face_area(forest, Face_full->tree_id,
                                                          element,Face_full->face_number);
 
@@ -242,9 +257,8 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
         }
     }
 
-    //printf("NUMBER OF ELEMENTS: %d\n",elem_count);
-    //printf("NUMBER OF MAX FACES %d, %d unique, %d boundary\n",
-    //        face_count,face_unique_count,bface_count);
+    /* free elem to tree map */
+    elem2tree.free();
 
     /* free non-unique face mempool/list */
     sc_mempool_destroy(face_mempool);

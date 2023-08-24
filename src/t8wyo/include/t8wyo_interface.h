@@ -15,6 +15,7 @@
 
 /* system header files */
 #include <mpi.h>
+#include <iostream>
 
 T8WYO_EXTERN_C_BEGIN();
 
