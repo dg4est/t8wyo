@@ -22,13 +22,21 @@
 extern "C" {
 #endif
 
-/* function templates */
+/** AMR Tagging Callback Function Template.
+ *
+ * @param [in] elem_id      element id
+ * @param [in] level        level number
+ * @param [in] nvar         number of variables per cell
+ * @param [in] Wvalues_cell solution values stored in cell
+ * @param [out] tag         adaption tag: (-1) coarsen, (0) unchanged, (1) refine
+ */
 typedef void (*tag_callback_t)(int *elem_id,
                                int *level,
                                int *nvar,
                                Real *Wvalues_cell,
                                int *tag);
 
+/** Adaption Information Data Structure */
 typedef struct {
     tag_callback_t *tag_func; /**< tagging callback function */
     Real *wvalues;            /**< solution values */

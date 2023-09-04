@@ -110,17 +110,27 @@ void t8wyo_build_forest_(int *ntetra,int *npyr,int *nprizm,int *nhex,
     if(t8wyo.ctx.rank==0) printf("[t8wyo] FOREST CONSTRUCTION: %f (sec)\n",forest_time);
 }
 
-void t8wyo_build_lists_(int *ncell_real,int *ncell,int *nface,
-                        int **face2cellptr,int **ifacetypeptr,
+void t8wyo_build_lists_(int *ncell_real,int *ncell,
+                        int *nface,int *nnodes,
+                        int *ntet,int *npyr,int *nprism,int *nhex,
+                        int **face2cellptr,
+                        int **ifacetypeptr,
                         int **cellinfoptr,
+                        int **ndc4ptr,
+                        int **ndc5ptr,
+                        int **ndc6ptr,
+                        int **ndc8ptr,
+                        Real **xgeomptr,
                         Real **cellvolptr,
                         Real **facenormptr){
     /* construct face2cell,facetype,elem_info,elem_vol data structures */
     if(t8wyo.ctx.rank==0) std::cout << "[t8wyo] BUILDING CONNECTIVITY LISTS..."; std::cout.flush();
     Real lists_time;
     TIMER(lists_time,
-        t8wyo_build_lists_ext(t8wyo_cmesh,t8wyo_forest,face2cell,ifacetype,
-                              elem_info,elem_vol,face_norm);
+        t8wyo_build_lists_ext(t8wyo_cmesh,t8wyo_forest,
+                              face2cell,ifacetype,
+                              elem_info,ndc4,ndc5,ndc6,ndc8,
+                              forest_xgeom,elem_vol,face_norm);
     );
 
     t8_locidx_t num_elements = t8_forest_get_local_num_elements(t8wyo_forest);
@@ -129,12 +139,23 @@ void t8wyo_build_lists_(int *ncell_real,int *ncell,int *nface,
     /* set counts */
     *ncell_real = (int) num_elements;
     *ncell = (int) (num_elements+num_ghosts);
-    *nface = face2cell.length()/2;
+    *nface = face2cell.length()/2;     // storing two values per face
+    *nnodes = forest_xgeom.length()/3; // storing three coordinates per node
+
+    *ntet   = ndc4.length()/4;
+    *npyr   = ndc5.length()/5;
+    *nprism = ndc6.length()/6;
+    *nhex   = ndc8.length()/8;
 
     /* fill Fortran data */
     *face2cellptr = face2cell.ptr();
     *ifacetypeptr = ifacetype.ptr();
     *cellinfoptr = elem_info.ptr();
+    *ndc4ptr = ndc4.ptr();
+    *ndc5ptr = ndc5.ptr();
+    *ndc6ptr = ndc6.ptr();
+    *ndc8ptr = ndc8.ptr();
+    *xgeomptr = forest_xgeom.ptr();
     *cellvolptr = elem_vol.ptr();
     *facenormptr = face_norm.ptr();
 
