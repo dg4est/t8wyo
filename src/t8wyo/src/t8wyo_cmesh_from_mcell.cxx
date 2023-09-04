@@ -24,22 +24,6 @@ const int t8wyo_mcell_tree_vertex_to_t8_vertex_num[T8_ECLASS_COUNT][8]
   {0, 1, 3, 2, 4}               /* PYRAMID */
 };
 
-/* translate the t8code vertex number to the mcell file vertex number.
- * See also (1) https://github.com/DLR-AMR/t8code/wiki/Build-Cmesh
- *          (2) https://server.scientific-sims.com/cfdlab/scientific-sims/solver-file-formats.html#mcell-format-description
- */
-const int t8wyo_vertex_to_mcell_vertex_num[T8_ECLASS_COUNT][8]
-  = {
-  {0},                          /* VERTEX */
-  {0, 1},                       /* LINE */
-  {0, 1, 3, 2},                 /* QUAD */
-  {0, 1, 2},                    /* TRIANGLE */
-  {0, 1, 3, 2, 4, 5, 7, 6},     /* HEX */
-  {0, 2, 1, 3},                 /* TET */
-  {0, 1, 2, 3, 4, 5},           /* PRISM */
-  {0, 1, 3, 2, 4}               /* PYRAMID */
-};
-
 /* TODO: if partitioned then only add the needed face-connections to join faces
  *       maybe also only trees and ghosts to classes.
  *       Specifying all face-connections makes commit algorithm slow! */

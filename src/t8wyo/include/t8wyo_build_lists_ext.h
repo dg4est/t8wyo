@@ -11,6 +11,7 @@
 /* header files */
 #include "t8wyo_solver.hxx"
 #include "t8wyo_forest_aux.h"
+#include "ordered_set.h"
 
 /* 3PL header files */
 #include <sc.h>
@@ -39,7 +40,7 @@ extern "C" {
 /* struct stores all information associated to a elements face */
 typedef struct {
     t8_element_t *elem;     /* local element */
-    t8_locidx_t tree_id;    /* local tree id this face belongs to */
+    t8_locidx_t ltree_id;    /* local tree id this face belongs to */
     t8_locidx_t lelem_id;   /* local element id in tree */
     t8_locidx_t elem_id;    /* local element id this face belongs to */
     int face_number;        /* face number within the element */
@@ -57,6 +58,37 @@ typedef struct {
 }
 t8wyo_face_t;
 
+#define TOL 1.0E-12
+struct Node {
+    int id;
+    double x;
+    double y;
+    double z;
+
+    Node() { }
+    Node(int id,double *geo){
+        this->id = id;
+        this->x = geo[0];
+        this->y = geo[1];
+        this->z = geo[2];
+    }
+
+    bool operator==(const Node& otherNode) const {
+        return (otherNode.id == id) || ((abs(this->x - otherNode.x) <= TOL) &&
+                                        (abs(this->y - otherNode.y) <= TOL) &&
+                                        (abs(this->z - otherNode.z) <= TOL));
+    }
+
+    struct HashFunction {
+        size_t operator()(const Node& node) const {
+            size_t xHash = std::hash<int>()(int(node.x));
+            size_t yHash = std::hash<int>()(int(node.y)) << 1;
+            size_t zHash = std::hash<int>()(int(node.z)) << 2;
+            return xHash ^ yHash ^ zHash;
+        }
+    };
+};
+
 /* ========= */
 /* functions */
 /* ========= */
@@ -70,6 +102,11 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
                            wyo::memory<int> &face2cell,
                            wyo::memory<int> &facetype,
                            wyo::memory<int> &elem_info,
+                           wyo::memory<int> &ndc4,
+                           wyo::memory<int> &ndc5,
+                           wyo::memory<int> &ndc6,
+                           wyo::memory<int> &ndc8,
+                           wyo::memory<Real> &xgeom,
                            wyo::memory<Real> &elem_vol,
                            wyo::memory<Real> &face_norm);
 
