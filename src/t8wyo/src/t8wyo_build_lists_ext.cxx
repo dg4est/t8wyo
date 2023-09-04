@@ -141,7 +141,8 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
     ntet = npyr = nprism = nhex = 0;
 
      // make ordered hash set
-    tsl::ordered_set<Node, Node::HashFunction> nodes;
+    std::unordered_set<Node, Node::HashFunction> nodes;
+    double vertex_coords[3];
     double coords[3];
     int icorner;
     int iface;
@@ -153,13 +154,14 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
         t8_eclass_t tree_class = t8_forest_get_tree_class(forest,itree);
         t8_locidx_t num_elements_in_tree = t8_forest_get_tree_num_elements(forest,itree);
         t8_eclass_scheme_c *eclass_scheme = t8_forest_get_eclass_scheme(forest,tree_class);
+        t8_gloidx_t gtreeid = t8_forest_global_tree_id(forest, itree);
+        t8_cmesh_t cmesh = t8_forest_get_cmesh(forest);
 
         int *elem_conn = (tree_class == T8_ECLASS_TET)     ? ndc4.ptr():
                          (tree_class == T8_ECLASS_PYRAMID) ? ndc5.ptr():
                          (tree_class == T8_ECLASS_PRISM)   ? ndc6.ptr():
                          (tree_class == T8_ECLASS_HEX)     ? ndc8.ptr():
                                                              nullptr;
-        assert(elem_conn);
 
         int &eidx = (tree_class == T8_ECLASS_TET)     ? ntet:
                     (tree_class == T8_ECLASS_PYRAMID) ? npyr:
@@ -185,24 +187,22 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
 
             /* insert vertices */
             int num_corners = eclass_scheme->t8_element_num_corners(element);
-            int *conn = &elem_conn[num_corners*eidx];
             for (icorner = 0; icorner < num_corners; icorner++) {
-                t8_forest_element_coordinate(forest,itree,element,icorner,coords);
+                eclass_scheme->t8_element_vertex_reference_coords(element, icorner, vertex_coords);
+                t8_geometry_evaluate(cmesh,gtreeid,vertex_coords,coords);
 
                 /* try to insert new node */
                 auto ret = nodes.insert(Node(node_count,coords));
 
                 /* set connectivity for node */
-                if (ret.second == true) {
-                    // inserted new node
-                    conn[icorner] = node_count+FBASE;
-                    // update counter
-                    node_count++;
-                } else {
-                    // node already existed
-                    const Node node = *ret.first;
-                    conn[icorner] = node.id+FBASE;
-                }
+                /* calculate node id:
+                 * if ret.second == true: (new node inserted)
+                 *      set to node_count, post-increment node_count
+                 * else: (node already existed)
+                 *      set to the found node id (i.e., Node node = *ret.first;)
+                 */
+                const int node_id = (ret.second) ? node_count++:(*ret.first).id;
+                elem_conn[num_corners*eidx+icorner] = node_id+FBASE;
             }
             // update element counter
             eidx++;
@@ -226,12 +226,11 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
     /* allocate and fill xgeom list */
     xgeom.malloc(3*node_count);
 
-    // reset count and fill xgeom
-    node_count = 0;
-    for (auto vertex = nodes.begin(); vertex != nodes.end(); ++vertex,++node_count) {
-        xgeom[3*node_count+0] = vertex->x;
-        xgeom[3*node_count+1] = vertex->y;
-        xgeom[3*node_count+2] = vertex->z;
+    // fill xgeom: must use vertex->id because nodes is an unordered set
+    for (auto vertex = nodes.begin(); vertex != nodes.end(); ++vertex) {
+        xgeom[3*vertex->id+0] = vertex->x;
+        xgeom[3*vertex->id+1] = vertex->y;
+        xgeom[3*vertex->id+2] = vertex->z;
     }
     /* free hash set memory */
     nodes.clear();
