@@ -11,7 +11,6 @@
 /* header files */
 #include "t8wyo_solver.hxx"
 #include "t8wyo_forest_aux.h"
-#include "ordered_set.h"
 
 /* 3PL header files */
 #include <sc.h>
@@ -21,6 +20,9 @@
 #include <t8_schemes/t8_default/t8_default_cxx.hxx>
 #include <t8_forest/t8_forest_general.h>
 #include <t8_forest/t8_forest_geometrical.h>
+
+/* system header files */
+#include <unordered_set>
 
 #ifdef __cplusplus
 extern "C" {
