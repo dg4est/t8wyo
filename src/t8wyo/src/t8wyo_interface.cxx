@@ -79,32 +79,34 @@ void t8wyo_build_forest_(int *ntetra,int *npyr,int *nprizm,int *nhex,
         t8wyo_forest = t8wyo_build_forest(t8wyo_cmesh,0,t8wyo.ctx.comm);
     );
 
-    /* send back new grid info */
-    t8_locidx_t num_trees,num_elems_in_tree,itree;
-    t8_eclass_scheme_c *ts;
-    int nelem_type[T8_ECLASS_COUNT] = {0};
+    /* count number of elements of each type*/
+    int elem_counts[T8_ECLASS_COUNT] = {0};
+    t8_locidx_t num_local_trees = t8_forest_get_num_local_trees(t8wyo_forest);
+    for (t8_locidx_t itree = 0; itree < num_local_trees; ++itree) {
+        t8_locidx_t num_elements_in_tree = t8_forest_get_tree_num_elements(t8wyo_forest,itree);
+        t8_eclass_t tree_class = t8_forest_get_tree_class(t8wyo_forest,itree);
+        t8_eclass_scheme_c *eclass_scheme = t8_forest_get_eclass_scheme(t8wyo_forest,tree_class);
 
-    num_trees = t8_forest_get_num_local_trees(t8wyo_forest);
-    for (itree = 0; itree < num_trees; itree++) {
-        ts = t8_forest_get_eclass_scheme(t8wyo_forest,t8_forest_get_tree_class(t8wyo_forest,itree));
-        num_elems_in_tree = t8_forest_get_tree_num_elements(t8wyo_forest,itree);
+        for (t8_locidx_t ielement = 0; ielement < num_elements_in_tree; ++ielement) {
+            t8_element_t *element = t8_forest_get_element_in_tree(t8wyo_forest,itree,ielement);
+            const t8_element_shape_t element_shape = eclass_scheme->t8_element_shape(element);
 
-        // add to element type count
-        nelem_type[ts->eclass] += num_elems_in_tree;
+            elem_counts[element_shape]++;
+        }
     }
 
     /* set local element counts */
-    *ntetra = nelem_type[T8_ECLASS_TET];
-    *npyr = nelem_type[T8_ECLASS_PYRAMID];
-    *nprizm = nelem_type[T8_ECLASS_PRISM];
-    *nhex = nelem_type[T8_ECLASS_HEX];
+    *ntetra = elem_counts[T8_ECLASS_TET];
+    *npyr   = elem_counts[T8_ECLASS_PYRAMID];
+    *nprizm = elem_counts[T8_ECLASS_PRISM];
+    *nhex   = elem_counts[T8_ECLASS_HEX];
 
     /* set local element ghost type counts */
     // TODO: get ghost element type counts
     *ntetra_ng = 0;
-    *npyr_ng = 0;
+    *npyr_ng   = 0;
     *nprizm_ng = 0;
-    *nhex_ng = 0;
+    *nhex_ng   = 0;
 
     //printf("T8WYO ELEM COUNTS: %d %d %d %d\n",*ntetra,*npyr,*nprizm,*nhex);
     if(t8wyo.ctx.rank==0) printf("[t8wyo] FOREST CONSTRUCTION: %f (sec)\n",forest_time);

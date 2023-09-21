@@ -123,13 +123,19 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
     for (t8_locidx_t itree = 0; itree < num_local_trees; ++itree) {
         t8_locidx_t num_elements_in_tree = t8_forest_get_tree_num_elements(forest,itree);
         t8_eclass_t tree_class = t8_forest_get_tree_class(forest,itree);
+        t8_eclass_scheme_c *eclass_scheme = t8_forest_get_eclass_scheme(forest,tree_class);
 
-        elem_counts[tree_class] += num_elements_in_tree;
+        for (t8_locidx_t ielement = 0; ielement < num_elements_in_tree; ++ielement) {
+            t8_element_t *element = t8_forest_get_element_in_tree(forest,itree,ielement);
+            const t8_element_shape_t element_shape = eclass_scheme->t8_element_shape(element);
+
+            elem_counts[element_shape]++;
+        }
     }
-    int ntet = elem_counts[T8_ECLASS_TET];
-    int npyr = elem_counts[T8_ECLASS_PYRAMID];
+    int ntet   = elem_counts[T8_ECLASS_TET];
+    int npyr   = elem_counts[T8_ECLASS_PYRAMID];
     int nprism = elem_counts[T8_ECLASS_PRISM];
-    int nhex = elem_counts[T8_ECLASS_HEX];
+    int nhex   = elem_counts[T8_ECLASS_HEX];
 
     /* allocate element connectivities */
     ndc4.malloc(4*ntet);
@@ -146,7 +152,7 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
     double coords[3];
     int icorner;
     int iface;
-    int tmp;
+    int tmp = -1;
 
     /* count max faces in forest; stash all faces into list */
     int node_count = 0;
@@ -154,29 +160,30 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
         t8_eclass_t tree_class = t8_forest_get_tree_class(forest,itree);
         t8_locidx_t num_elements_in_tree = t8_forest_get_tree_num_elements(forest,itree);
         t8_eclass_scheme_c *eclass_scheme = t8_forest_get_eclass_scheme(forest,tree_class);
-        t8_gloidx_t gtreeid = t8_forest_global_tree_id(forest, itree);
+        t8_gloidx_t gtreeid = t8_forest_global_tree_id(forest,itree);
         t8_cmesh_t cmesh = t8_forest_get_cmesh(forest);
-
-        int *elem_conn = (tree_class == T8_ECLASS_TET)     ? ndc4.ptr():
-                         (tree_class == T8_ECLASS_PYRAMID) ? ndc5.ptr():
-                         (tree_class == T8_ECLASS_PRISM)   ? ndc6.ptr():
-                         (tree_class == T8_ECLASS_HEX)     ? ndc8.ptr():
-                                                             nullptr;
-
-        int &eidx = (tree_class == T8_ECLASS_TET)     ? ntet:
-                    (tree_class == T8_ECLASS_PYRAMID) ? npyr:
-                    (tree_class == T8_ECLASS_PRISM)   ? nprism:
-                    (tree_class == T8_ECLASS_HEX)     ? nhex:
-                                                        tmp;
 
         /* loop over all local elements in the tree. */
         for (t8_locidx_t ielement = 0; ielement < num_elements_in_tree; ++ielement, ++elem_index) {
             t8_element_t *element = t8_forest_get_element_in_tree(forest,itree,ielement);
-            int num_faces = eclass_scheme->t8_element_num_faces(element);
+            const t8_element_shape_t element_shape = eclass_scheme->t8_element_shape(element);
+            const int num_corners = eclass_scheme->t8_element_num_corners(element);
+            const int num_faces = eclass_scheme->t8_element_num_faces(element);
 
+            int *elem_conn = (element_shape == T8_ECLASS_TET)     ? ndc4.ptr():
+                             (element_shape == T8_ECLASS_PYRAMID) ? ndc5.ptr():
+                             (element_shape == T8_ECLASS_PRISM)   ? ndc6.ptr():
+                             (element_shape == T8_ECLASS_HEX)     ? ndc8.ptr():
+                                                                    nullptr;
+
+            int &eidx = (element_shape == T8_ECLASS_TET)     ? ntet:
+                        (element_shape == T8_ECLASS_PYRAMID) ? npyr:
+                        (element_shape == T8_ECLASS_PRISM)   ? nprism:
+                        (element_shape == T8_ECLASS_HEX)     ? nhex:
+                                                               tmp;
             /* set local element information */
             int *einfo = &elem_info[INFO_ELEM_SIZE*elem_index];
-            einfo[ETYPE_IND] = elem_class[tree_class];
+            einfo[ETYPE_IND] = elem_class[element_shape];
             einfo[ELEVL_IND] = eclass_scheme->t8_element_level(element);
 
             /* initialize element's volume */
@@ -186,7 +193,6 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
             elem2tree[elem_index] = itree;
 
             /* insert vertices */
-            int num_corners = eclass_scheme->t8_element_num_corners(element);
             for (icorner = 0; icorner < num_corners; icorner++) {
                 eclass_scheme->t8_element_vertex_reference_coords(element, icorner, vertex_coords);
                 t8_geometry_evaluate(cmesh,gtreeid,vertex_coords,coords);
