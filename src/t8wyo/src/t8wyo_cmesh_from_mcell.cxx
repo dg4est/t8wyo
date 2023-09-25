@@ -264,7 +264,12 @@ void assemble_nbface_list(int nvert,sc_hash_t *bf,sc_mempool_t *bf_mempool,
         Face->vertices[0] = (long) (nbf[nvert*face_it + 0]-FBASE);
         Face->vertices[1] = (long) (nbf[nvert*face_it + 1]-FBASE);
         Face->vertices[2] = (long) (nbf[nvert*face_it + 2]-FBASE);
-        if(nvert>3) Face->vertices[3] = (long) (nbf[nvert*face_it + 3]-FBASE);
+        if(nvert>3) {
+            // reorder nodes for t8code
+            long temp = Face->vertices[2];
+            Face->vertices[2] = (long) (nbf[nvert*face_it + 3]-FBASE);
+            Face->vertices[3] = temp;
+        }
 
         /* insert boundary face into hash list */
         int ret = sc_hash_insert_unique(bf,Face,NULL);
@@ -278,14 +283,14 @@ static unsigned
 t8_mcell_face_hash(const void *face, const void *data){
   t8_mcell_face_t *Face;
   int iv;
-  long sum = 0;
+  unsigned sum = 0;
 
   Face = (t8_mcell_face_t *) face;
   for (iv = 0; iv < Face->num_vertices; iv++) {
     sum += Face->vertices[iv];
   }
   T8_ASSERT(sum >= 0);
-  return (unsigned) sum;
+  return sum;
 }
 
 /* two faces are considered equal if they have the same vertices up to renumeration. */
@@ -441,9 +446,7 @@ t8_mcell_face_orientation(t8_mcell_face_t *Face_a,
         if (vertex_zero == bigger_Face->vertices[iv]) {
             /* found corresponding vertex */
             orientation = iv;
-
-            /* set condition to break the loop */
-            iv = t8_eclass_num_vertices[bigger_class];
+            break;
         }
     }
     T8_ASSERT(orientation >= 0);

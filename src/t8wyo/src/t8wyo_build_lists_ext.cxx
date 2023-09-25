@@ -298,7 +298,7 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
                     /* compute geometry info */
                     char full = (num_neighbors == 1);
                     t8_element_t *element = (full) ? Face_full->elem:face_children[ielem];
-                    int face_number = (full) ? iface:ts->t8_element_face_child_face(Face_full->elem,iface,ielem);
+                    int face_number = (full) ? Face_full->face_number:ts->t8_element_face_child_face(Face_full->elem,iface,ielem);
 
                     /* face information */
                     t8_forest_element_face_normal(forest,Face_full->ltree_id,element,face_number,Face->normal);
