@@ -152,7 +152,7 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
     double coords[3];
     int icorner;
     int iface;
-    int tmp = -1;
+    int tmp = -1000000;
 
     /* count max faces in forest; stash all faces into list */
     int node_count = 0;
@@ -167,8 +167,8 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
         for (t8_locidx_t ielement = 0; ielement < num_elements_in_tree; ++ielement, ++elem_index) {
             t8_element_t *element = t8_forest_get_element_in_tree(forest,itree,ielement);
             const t8_element_shape_t element_shape = eclass_scheme->t8_element_shape(element);
-            const int num_corners = eclass_scheme->t8_element_num_corners(element);
             const int num_faces = eclass_scheme->t8_element_num_faces(element);
+            const int num_corners = t8_eclass_num_vertices[element_shape];
 
             int *elem_conn = (element_shape == T8_ECLASS_TET)     ? ndc4.ptr():
                              (element_shape == T8_ECLASS_PYRAMID) ? ndc5.ptr():
@@ -192,10 +192,14 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
             /* save tree index for elem */
             elem2tree[elem_index] = itree;
 
+            /* TODO: check if there is a better way to get correct ordering */
             /* insert vertices */
+            int tree_node_ids[T8_ECLASS_MAX_CORNERS];
+            double tree_vertices[T8_ECLASS_MAX_CORNERS * 3];
             for (icorner = 0; icorner < num_corners; icorner++) {
-                eclass_scheme->t8_element_vertex_reference_coords(element, icorner, vertex_coords);
-                t8_geometry_evaluate(cmesh,gtreeid,vertex_coords,coords);
+                eclass_scheme->t8_element_vertex_reference_coords(element,icorner,vertex_coords);
+                t8_geometry_evaluate(cmesh,gtreeid,vertex_coords,1,coords);
+                memcpy(&tree_vertices[3*icorner],coords,3*sizeof(double));
 
                 /* try to insert new node */
                 auto ret = nodes.insert(Node(node_count,coords));
@@ -208,8 +212,17 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
                  *      set to the found node id (i.e., Node node = *ret.first;)
                  */
                 const int node_id = (ret.second) ? node_count++:(*ret.first).id;
-                elem_conn[num_corners*eidx+icorner] = node_id+FBASE;
+                tree_node_ids[icorner] = node_id+FBASE;
             }
+
+            // check ordering
+            if(t8_cmesh_tree_vertices_negative_volume(element_shape,tree_vertices,num_corners)){
+                correct_node_ordering(element_shape,tree_node_ids);
+            }
+
+            // fill element connectivity
+            memcpy(&elem_conn[num_corners*eidx],tree_node_ids,num_corners*sizeof(int));
+
             // update element counter
             eidx++;
 

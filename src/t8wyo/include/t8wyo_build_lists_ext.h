@@ -91,6 +91,105 @@ struct Node {
     };
 };
 
+static void correct_neg_volume(t8_eclass eclass,double *tree_vertices){
+   /* The volume described is negative-- change vertices
+    *   tets:     switch 0 and 3
+    *   prisms:   switch 0 and 3, 1 and 4, 2 and 5
+    *   pyramids: switch 0 and 4
+    *   hexs:     switch 0 and 4, 1 and 5, 2 and 6, 3 and 7
+    */
+    double temp;
+    int i;
+    int iswitch;
+    int num_switches = 0;
+    int switch_indices[4] = { 0 };
+    T8_ASSERT(t8_eclass_to_dimension[eclass] == 3);
+
+    switch (eclass) {
+        case T8_ECLASS_TET:
+            /* We switch vertex 0 and vertex 3 */
+            num_switches = 1;
+            switch_indices[0] = 3;
+            break;
+        case T8_ECLASS_PRISM:
+            num_switches = 3;
+            switch_indices[0] = 3;
+            switch_indices[1] = 4;
+            switch_indices[2] = 5;
+            break;
+        case T8_ECLASS_HEX:
+            num_switches = 4;
+            switch_indices[0] = 4;
+            switch_indices[1] = 5;
+            switch_indices[2] = 6;
+            switch_indices[3] = 7;
+            break;
+        case T8_ECLASS_PYRAMID:
+            num_switches = 1;
+            switch_indices[0] = 4;
+            break;
+        default:
+            SC_ABORT_NOT_REACHED();
+    }
+
+    /* switch vertex 0 + iswitch and vertex switch_indices[iswitch] */
+    for (iswitch = 0; iswitch < num_switches; ++iswitch) {
+        for (i = 0; i < 3; i++) {
+            temp = tree_vertices[3 * iswitch + i];
+            tree_vertices[3 * iswitch + i] = tree_vertices[3 * switch_indices[iswitch] + i];
+            tree_vertices[3 * switch_indices[iswitch] + i] = temp;
+        }
+    }
+}
+
+static void correct_node_ordering(t8_eclass eclass,int *nodes){
+   /* The volume described is negative-- change vertices
+    *   tets:     switch 0 and 3
+    *   prisms:   switch 0 and 3, 1 and 4, 2 and 5
+    *   pyramids: switch 0 and 4
+    *   hexs:     switch 0 and 4, 1 and 5, 2 and 6, 3 and 7
+    */
+    int temp;
+    int iswitch;
+    int num_switches = 0;
+    int switch_indices[4] = { 0 };
+    T8_ASSERT(t8_eclass_to_dimension[eclass] == 3);
+
+    switch (eclass) {
+        case T8_ECLASS_TET:
+            /* We switch vertex 0 and vertex 3 */
+            num_switches = 1;
+            switch_indices[0] = 3;
+            break;
+        case T8_ECLASS_PRISM:
+            num_switches = 3;
+            switch_indices[0] = 3;
+            switch_indices[1] = 4;
+            switch_indices[2] = 5;
+            break;
+        case T8_ECLASS_HEX:
+            num_switches = 4;
+            switch_indices[0] = 4;
+            switch_indices[1] = 5;
+            switch_indices[2] = 6;
+            switch_indices[3] = 7;
+            break;
+        case T8_ECLASS_PYRAMID:
+            num_switches = 1;
+            switch_indices[0] = 4;
+            break;
+        default:
+            SC_ABORT_NOT_REACHED();
+    }
+
+    /* switch vertex 0 + iswitch and vertex switch_indices[iswitch] */
+    for (iswitch = 0; iswitch < num_switches; ++iswitch) {
+        temp = nodes[iswitch];
+        nodes[iswitch] = nodes[switch_indices[iswitch]];
+        nodes[switch_indices[iswitch]] = temp;
+    }
+}
+
 /* ========= */
 /* functions */
 /* ========= */
