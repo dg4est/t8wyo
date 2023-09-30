@@ -113,10 +113,11 @@ void t8wyo_build_forest_(int *ntetra,int *npyr,int *nprizm,int *nhex,
 }
 
 void t8wyo_build_lists_(int *ncell_real,int *ncell,
-                        int *nface,int *nnodes,
+                        int *nface,int *nnodes,int *nmortar,
                         int *ntet,int *npyr,int *nprism,int *nhex,
                         int **face2cellptr,
                         int **ifacetypeptr,
+                        int **mortarptr,
                         int **cellinfoptr,
                         int **ndc4ptr,
                         int **ndc5ptr,
@@ -130,7 +131,7 @@ void t8wyo_build_lists_(int *ncell_real,int *ncell,
     Real lists_time;
     TIMER(lists_time,
         t8wyo_build_lists_ext(t8wyo_cmesh,t8wyo_forest,
-                              face2cell,ifacetype,
+                              face2cell,ifacetype,mortar_info,
                               elem_info,ndc4,ndc5,ndc6,ndc8,
                               forest_xgeom,elem_vol,face_norm);
     );
@@ -143,6 +144,7 @@ void t8wyo_build_lists_(int *ncell_real,int *ncell,
     *ncell = (int) (num_elements+num_ghosts);
     *nface = face2cell.length()/2;     // storing two values per face
     *nnodes = forest_xgeom.length()/3; // storing three coordinates per node
+    *nmortar = mortar_info.length()/10;// storing ten integers per mortar
 
     *ntet   = ndc4.length()/4;
     *npyr   = ndc5.length()/5;
@@ -152,6 +154,7 @@ void t8wyo_build_lists_(int *ncell_real,int *ncell,
     /* fill Fortran data */
     *face2cellptr = face2cell.ptr();
     *ifacetypeptr = ifacetype.ptr();
+    *mortarptr = mortar_info.ptr();
     *cellinfoptr = elem_info.ptr();
     *ndc4ptr = ndc4.ptr();
     *ndc5ptr = ndc5.ptr();

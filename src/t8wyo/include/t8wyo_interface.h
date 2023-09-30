@@ -101,6 +101,7 @@ void t8wyo_build_forest_(int *ntetra,
  * @param [out] ncell           number of total cells on rank (real+ghost)
  * @param [out] nface           number of mesh faces
  * @param [out] nnodes          number of mesh nodes (unique)
+ * @param [out] nmortar         number of hanging face mortars (10 ints per face)
  * @param [out] ntet            number of real tetrahedra
  * @param [out] npyr            number of real pyramids
  * @param [out] nprism          number of real prisms
@@ -108,6 +109,7 @@ void t8wyo_build_forest_(int *ntetra,
  * @param [out] face2cellptr    array pointer to face2cell data structure
  * @param [out] ifacetypeptr    array pointer to ifacetype data structure
  * @param [out] cellinfoptr     array pointer to cellinfo data structure
+ * @param [out] mortarptr       array pointer to hanging mortar data structure
  * @param [out] ndc4ptr         array pointer to ndc4 data structure: tet connectivity, size=ntet
  * @param [out] ndc5ptr         array pointer to ndc5 data structure: pyramid connectivity, size=npyr
  * @param [out] ndc6ptr         array pointer to ndc6 data structure: prism connectivity, size=nprism
@@ -117,10 +119,11 @@ void t8wyo_build_forest_(int *ntetra,
  * @param [out] facenormptr     array pointer to facenorm data structure: face normal vectors, size=nface
  */
 void t8wyo_build_lists_(int *ncell_real,int *ncell,
-                        int *nface,int *nnodes,
+                        int *nface,int *nnodes,int *nmortar,
                         int *ntet,int *npyr,int *nprism,int *nhex,
                         int **face2cellptr,
                         int **ifacetypeptr,
+                        int **mortarptr,
                         int **cellinfoptr,
                         int **ndc4ptr,
                         int **ndc5ptr,
