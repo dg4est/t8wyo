@@ -56,7 +56,7 @@ t8wyo_facenormal_fill(void **face,const void *data){
     t8wyo_face_t *Face = *(t8wyo_face_t **) face;
     Real *fnorm = (Real *) data;
 
-    Real fac = Face->sign*Face->area;
+    Real fac = Face->area;
     fnorm[3*Face->face_index+0] = fac*Face->normal[0];
     fnorm[3*Face->face_index+1] = fac*Face->normal[1];
     fnorm[3*Face->face_index+2] = fac*Face->normal[2];
@@ -280,7 +280,7 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
                                      &dual_faces,
                                      &num_neighbors,
                                      &neighids,
-                                     &neigh_scheme, 1);
+                                     &neigh_scheme,1);
 
         if (num_neighbors > 0) {
             /* interior face:
@@ -316,7 +316,6 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
                     /* face information */
                     t8_forest_element_face_normal(forest,Face_full->ltree_id,element,face_number,Face->normal);
                     Face->area = t8_forest_element_face_area(forest,Face_full->ltree_id,element,face_number);
-                    Face->sign = !full - full; // branchless sign: if(full) sign = -1, else sign = +1
                     Face->face_index = face_unique_count++;
                 } else {
                     /* face already existed: clean up memory */
@@ -369,7 +368,6 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
                                               element,Face_full->face_number,
                                               Face->normal);
                 /* face area */
-                Face->sign = -1.0;
                 Face->area = t8_forest_element_face_area(forest, Face_full->ltree_id,
                                                          element,Face_full->face_number);
 

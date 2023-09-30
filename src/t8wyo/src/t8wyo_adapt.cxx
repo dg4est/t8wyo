@@ -82,6 +82,7 @@ int t8wyo_tag_callback(t8_forest_t forest,
     // tag: (1) refine this element
     //      (0) do not change this element
     //     (-1) coarsen this element (only is_family=1)
+    ielement += FBASE;
     (*(adapt_info->tag_func))(&ielement,&level,&nvar,Wvalues_cell,&tag);
 
     // if coarsen, check if is_family, since returning < 0 is illegal

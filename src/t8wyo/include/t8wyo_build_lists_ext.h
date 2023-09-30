@@ -56,7 +56,6 @@ typedef struct {
     t8_locidx_t nvert;   /* number of face vertices */
     Real normal[3];
     Real area;
-    Real sign;
 }
 t8wyo_face_t;
 
