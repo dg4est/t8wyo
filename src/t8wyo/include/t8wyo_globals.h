@@ -38,6 +38,7 @@ t8wyo_t t8wyo;
 
 wyo::memory<int> face2cell;
 wyo::memory<int> ifacetype;
+wyo::memory<int> mortar_info;
 wyo::memory<int> elem_info;
 wyo::memory<int> ndc4;
 wyo::memory<int> ndc5;

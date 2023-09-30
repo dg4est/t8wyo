@@ -22,6 +22,7 @@
 #include <t8_forest/t8_forest_geometrical.h>
 
 /* system header files */
+#include <assert.h>
 #include <unordered_set>
 
 #ifdef __cplusplus
@@ -35,6 +36,10 @@ extern "C" {
 #define T8WYO_CMESH_OFFSET_KEY  T8_CMESH_NEXT_POSSIBLE_KEY
 #define T8WYO_FID_KEY 0
 #define T8WYO_FTYPE_KEY 1
+
+#define MAX_FACES 6
+#define MAX_SUBFACES 4
+#define MAX_SUBELEMENTS 10
 
 /* =============== */
 /* Data Structures */
@@ -58,6 +63,36 @@ typedef struct {
     Real area;
 }
 t8wyo_face_t;
+
+struct Mortar {
+    t8_locidx_t elemidx_minus; /**< Local index of the element corresponding to minus (big element) */
+    int iface_minus; /**< Local face index inside the big element */
+    mutable int cnt; // counter for hanging faces filled
+    mutable t8_locidx_t elemidx_plus[MAX_SUBFACES]; /**< Local index of the elements corresponding to plus (hanging elements) */
+    mutable int iface_plus[MAX_SUBFACES]; /**< Local face indices inside the hanging elements */
+
+    Mortar(int elemidx,int iface) : cnt{0} {
+        elemidx_minus = elemidx;
+        iface_minus = iface;
+    }
+
+    bool operator==(const Mortar& otherMortar) const {
+        return (otherMortar.elemidx_minus == this->elemidx_minus) &&
+               (otherMortar.iface_minus == this->iface_minus);
+    }
+
+    struct HashFunction {
+        size_t operator()(const Mortar& mortar) const {
+            return std::hash<t8_locidx_t>()(mortar.elemidx_minus) ^ std::hash<int>()(mortar.iface_minus);
+        }
+    };
+
+    struct KeyEqual {
+        bool operator()(const Mortar& lhs, const Mortar& rhs) const {
+            return lhs == rhs;
+        }
+    };
+};
 
 #define TOL 1.0E-12
 struct Node {
@@ -201,6 +236,7 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
                            t8_forest_t forest,
                            wyo::memory<int> &face2cell,
                            wyo::memory<int> &facetype,
+                           wyo::memory<int> &mortar_info,
                            wyo::memory<int> &elem_info,
                            wyo::memory<int> &ndc4,
                            wyo::memory<int> &ndc5,

@@ -67,6 +67,7 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
                            t8_forest_t forest,
                            wyo::memory<int> &face2cell,
                            wyo::memory<int> &facetype,
+                           wyo::memory<int> &mortar_info,
                            wyo::memory<int> &elem_info,
                            wyo::memory<int> &ndc4,
                            wyo::memory<int> &ndc5,
@@ -90,6 +91,7 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
     /* clean up memory to avoid excessive usage */
     face2cell.free();
     facetype.free();
+    mortar_info.free();
     elem_info.free();
     elem_vol.free();
     face_norm.free();
@@ -114,7 +116,6 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
     t8_locidx_t elem_count = t8_forest_get_local_num_elements(forest);
     t8_locidx_t ghost_count = t8_forest_get_num_ghosts(forest);
 
-    wyo::memory<t8_locidx_t> elem2tree(elem_count,-1);
     elem_info.malloc(INFO_ELEM_SIZE*elem_count,-1); // auto-deletes if pre-allocated
     elem_vol.malloc(elem_count+ghost_count,-1.0);
 
@@ -146,7 +147,8 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
     /* reset element counts */
     ntet = npyr = nprism = nhex = 0;
 
-     // make ordered hash set
+     // make unordered hash sets
+    std::unordered_set<Mortar, Mortar::HashFunction, Mortar::KeyEqual> mortars;
     std::unordered_set<Node, Node::HashFunction> nodes;
     double vertex_coords[3];
     double coords[3];
@@ -189,11 +191,8 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
             /* initialize element's volume */
             elem_vol[elem_index] = t8_forest_element_volume(forest,itree,element);
 
-            /* save tree index for elem */
-            elem2tree[elem_index] = itree;
-
-            /* TODO: check if there is a better way to get correct ordering */
-            /* insert vertices */
+            /* fill nodes */
+            /* TODO: check for a better way to get correct ordering insert vertices */
             int tree_node_ids[T8_ECLASS_MAX_CORNERS];
             double tree_vertices[T8_ECLASS_MAX_CORNERS * 3];
             for (icorner = 0; icorner < num_corners; icorner++) {
@@ -254,14 +253,17 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
     /* free hash set memory */
     nodes.clear();
 
-    /* ========================= */
-    /* make unique list of faces */
-    /* ========================= */
+    /* ============================================== */
+    /* make unique list of faces/hanging face mortars */
+    /* ============================================== */
     int face_unique_count = 0;
     int bface_count = 0;
+    int nmortar = 0;
     while(faces->elem_count > 0){
         t8wyo_face_full_t *Face_full = (t8wyo_face_full_t *) sc_list_pop(faces);
+        const t8_locidx_t elem_idx = Face_full->elem_id;
         const int iface = Face_full->face_number;
+        const int own_level = elem_info[INFO_ELEM_SIZE*elem_idx+ELEVL_IND];
 
         // local variables
         t8_eclass_scheme_c *neigh_scheme;
@@ -282,6 +284,42 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
                                      &neighids,
                                      &neigh_scheme,1);
 
+        /* ------------------------- */
+        /* build hanging mortar list */
+        /* ------------------------- */
+        if (num_neighbors == 1 && (neigh_scheme->t8_element_level(neighs[0]) < own_level)) {
+            /* hanging face: the neighbor element is the coarser one (lower level number) */
+            if (neighids[0] < elem_count) {
+                /* neighbor element is local: try to insert new mortar */
+                auto ret = mortars.insert(Mortar(neighids[0],dual_faces[0]));
+                if(ret.second) nmortar++;
+
+                /* insert hang element info */
+                auto &mortar = (*ret.first); // retrieve mortar (may have existed)
+                if(mortar.cnt < MAX_SUBFACES){
+                    mortar.elemidx_plus[mortar.cnt] = elem_idx;
+                    mortar.iface_plus[mortar.cnt] = iface;
+                    mortar.cnt++;
+                }
+            }
+        } else if (num_neighbors > 1) {
+            /* hanging face: this element is the bigger one: try to insert new mortar */
+            auto ret = mortars.insert(Mortar(elem_idx,iface));
+            if(ret.second) nmortar++;
+
+            /* insert hang element info */
+            auto &mortar = (*ret.first); // retrieve mortar (may have existed)
+            for(int ihang = 0; ihang < num_neighbors; ihang++){
+                assert(mortar.cnt < MAX_SUBFACES);
+                mortar.elemidx_plus[ihang] = neighids[ihang];
+                mortar.iface_plus[ihang] = dual_faces[ihang];
+            }
+            mortar.cnt = MAX_SUBFACES;
+        }
+
+        /* ---------------------- */
+        /* build unique face list */
+        /* ---------------------- */
         if (num_neighbors > 0) {
             /* interior face:
              *  loop of elements on large face and
@@ -383,8 +421,25 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
         }
     }
 
-    /* free elem to tree map */
-    elem2tree.free();
+    /* fill hanging mortar information */
+    mortar_info.malloc(10*mortars.size());
+
+    int mcount=0;
+    for (auto mortar = mortars.begin(); mortar != mortars.end(); ++mortar,mcount++) {
+        int * const minfo = &mortar_info[10*mcount];
+
+        // big element mortar data (1st two entries)
+        minfo[0] = mortar->elemidx_minus+FBASE;
+        minfo[1] = mortar->iface_minus;
+
+        // hang element mortar data (entries 2-9)
+        int * const mhang = &minfo[2];
+        for(int i=0; i<MAX_SUBFACES; i++){
+            mhang[2*i] = mortar->elemidx_plus[i]+FBASE;
+            mhang[2*i+1] = mortar->iface_plus[i];
+        }
+    }
+    mortars.clear();
 
     /* free non-unique face mempool/list */
     sc_mempool_destroy(face_mempool);
