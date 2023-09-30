@@ -126,7 +126,7 @@ void t8wyo_build_lists_(int *ncell_real,int *ncell,
                         Real **cellvolptr,
                         Real **facenormptr){
     /* construct face2cell,facetype,elem_info,elem_vol data structures */
-    if(t8wyo.ctx.rank==0) std::cout << "[t8wyo] BUILDING CONNECTIVITY LISTS..."; std::cout.flush();
+    if(t8wyo.ctx.rank==0) std::cout << "[t8wyo] BUILDING CONNECTIVITY LISTS...\n"; std::cout.flush();
     Real lists_time;
     TIMER(lists_time,
         t8wyo_build_lists_ext(t8wyo_cmesh,t8wyo_forest,
