@@ -63,6 +63,26 @@ t8wyo_facenormal_fill(void **face,const void *data){
     return 1;
 }
 
+static int faceswap_tet[] = {3,1,2,0}; // swap 0 & 3
+static int faceswap_prism[] = {0,1,2,4,3,5}; // swap 3 & 4
+static int faceswap_pyramid[] = {0,1,2,3,4}; // TODO: NOT CLEAR WHAT RIGHT ANS
+
+static int swap_face(int eclass,int face_id){
+   switch (eclass){
+        case T8_ECLASS_TET:
+            return faceswap_tet[face_id];
+            break;
+        case T8_ECLASS_PRISM:
+            return faceswap_prism[face_id];
+            break;
+        case T8_ECLASS_PYRAMID:
+            return faceswap_pyramid[face_id]; // TODO: fix pyramid swap
+            break;
+        default:
+            return face_id;
+            break;
+    }
+}
 void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
                            t8_forest_t forest,
                            wyo::memory<int> &face2cell,
@@ -150,6 +170,7 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
      // make unordered hash sets
     std::unordered_set<Mortar, Mortar::HashFunction, Mortar::KeyEqual> mortars;
     std::unordered_set<Node, Node::HashFunction> nodes;
+    wyo::memory<char> reorder(elem_count,0);
     double vertex_coords[3];
     double coords[3];
     int icorner;
@@ -217,6 +238,7 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
             // check ordering
             if(t8_cmesh_tree_vertices_negative_volume(element_shape,tree_vertices,num_corners)){
                 correct_node_ordering(element_shape,tree_node_ids);
+                reorder[elem_index] = 1; // set node connectivity reorder flag
             }
 
             // fill element connectivity
@@ -431,12 +453,18 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
         // big element mortar data (1st two entries)
         minfo[0] = mortar->elemidx_minus+FBASE;
         minfo[1] = mortar->iface_minus;
+        if(reorder[mortar->elemidx_minus]) minfo[1] = swap_face(elem_info[INFO_ELEM_SIZE*mortar->elemidx_minus+ETYPE_IND],minfo[1]);
 
         // hang element mortar data (entries 2-9)
         int * const mhang = &minfo[2];
         for(int i=0; i<MAX_SUBFACES; i++){
             mhang[2*i] = mortar->elemidx_plus[i]+FBASE;
             mhang[2*i+1] = mortar->iface_plus[i];
+
+            // swap faces
+            if(reorder[mortar->elemidx_plus[i]]) {
+                mhang[2*i+1] = swap_face(elem_info[INFO_ELEM_SIZE*(mortar->elemidx_plus[i])+ETYPE_IND],mhang[2*i+1]);
+            }
         }
     }
     mortars.clear();
