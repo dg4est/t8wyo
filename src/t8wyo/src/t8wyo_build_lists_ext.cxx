@@ -36,9 +36,12 @@ static int
 t8wyo_face2cell_fill(void **face,const void *data){
     t8wyo_face_t *Face = *(t8wyo_face_t **) face;
     int *face2cell = (int *) data;
+    int *iface2cell = &face2cell[2*Face->face_index];
 
-    face2cell[2*Face->face_index+0] = Face->e1;
-    face2cell[2*Face->face_index+1] = Face->e2;
+    iface2cell[0] = Face->e1;
+    iface2cell[1] = Face->e2;
+//    iface2cell[2] = Face->iface1;
+//    iface2cell[3] = Face->iface2;
     return 1;
 }
 
@@ -217,8 +220,9 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
             int tree_node_ids[T8_ECLASS_MAX_CORNERS];
             double tree_vertices[T8_ECLASS_MAX_CORNERS * 3];
             for (icorner = 0; icorner < num_corners; icorner++) {
+                const size_t num_coords = 1;
                 eclass_scheme->t8_element_vertex_reference_coords(element,icorner,vertex_coords);
-                t8_geometry_evaluate(cmesh,gtreeid,vertex_coords,1,coords);
+                t8_geometry_evaluate(cmesh,gtreeid,vertex_coords,num_coords,coords);
                 memcpy(&tree_vertices[3*icorner],coords,3*sizeof(double));
 
                 /* try to insert new node */
@@ -365,6 +369,7 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
                 /* set owner and neighbor element info */
                 Face->e1 = Face_full->elem_id + FBASE;
                 Face->e2 = neighids[ielem] + FBASE;
+                //Face->iface2 = dual_faces[ielem] + FBASE;
 
                 /* try to insert the face into the hash */
                 if (sc_hash_insert_unique(faces_unique,Face,NULL)) {
@@ -478,7 +483,7 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
     sc_list_destroy(faces);
 
     /* allocate and fill face2cell */
-    face2cell.malloc(2*face_unique_count,-1);
+    face2cell.malloc(2*face_unique_count,-1); // four ints per face
     faces_unique->user_data = face2cell.ptr(); // set user_data for loop
     sc_hash_foreach(faces_unique,t8wyo_face2cell_fill);
 

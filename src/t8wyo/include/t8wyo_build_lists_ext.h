@@ -57,6 +57,8 @@ t8wyo_face_full_t;
 typedef struct {
     t8_locidx_t e1; /* element 1 on face */
     t8_locidx_t e2; /* element 2 on face */
+    int iface1;
+    int iface2;
     t8_locidx_t face_index; /* local face index */
     t8_locidx_t nvert;   /* number of face vertices */
     Real normal[3];
