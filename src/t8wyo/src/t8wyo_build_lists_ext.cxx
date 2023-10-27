@@ -40,17 +40,19 @@ t8wyo_face2cell_fill(void **face,const void *data){
 
     iface2cell[0] = Face->e1;
     iface2cell[1] = Face->e2;
-//    iface2cell[2] = Face->iface1;
-//    iface2cell[3] = Face->iface2;
     return 1;
 }
 
 static int
 t8wyo_facetype_fill(void **face,const void *data){
     t8wyo_face_t *Face = *(t8wyo_face_t **) face;
-    int *face_info = (int *) data;
+    int *facetype = (int *) data;
+    int *ifacetype = &facetype[4*Face->face_index];
 
-    face_info[Face->face_index] = (int) Face->nvert;
+    ifacetype[0] = (int) Face->iface1;
+    ifacetype[1] = (int) Face->iface2;
+    ifacetype[2] = (int) Face->orientation;
+    ifacetype[3] = (int) Face->nvert;
     return 1;
 }
 
@@ -66,7 +68,7 @@ t8wyo_facenormal_fill(void **face,const void *data){
     return 1;
 }
 
-static int faceswap_tet[] = {3,1,2,0}; // swap 0 & 3
+static int faceswap_tet[] = {3,1,2,0};       // swap 0 & 3
 static int faceswap_prism[] = {0,1,2,4,3,5}; // swap 3 & 4
 static int faceswap_pyramid[] = {0,1,2,3,4}; // TODO: NOT CLEAR WHAT RIGHT ANS
 
@@ -86,6 +88,7 @@ static int swap_face(const int eclass,const int face_id){
             break;
     }
 }
+
 void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
                            t8_forest_t forest,
                            wyo::memory<int> &face2cell,
@@ -100,6 +103,8 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
                            wyo::memory<Real> &elem_vol,
                            wyo::memory<Real> &face_norm){
     T8_ASSERT(t8_forest_is_committed(forest));
+
+    const int F = t8_eclass_max_num_faces[cmesh->dimension];
     static int elem_class[] = { 0, // T8_ECLASS_ZERO,T8_ECLASS_VERTEX
                                 1, // T8_ECLASS_LINE,
                                 2, // T8_ECLASS_QUAD,
@@ -180,6 +185,9 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
     int iface;
     int tmp = -1000000;
 
+    t8_locidx_t *faces1;
+    int8_t *ttf;
+
     /* count max faces in forest; stash all faces into list */
     int node_count = 0;
     for (t8_locidx_t itree = 0,elem_index = 0; itree < num_local_trees; ++itree) {
@@ -251,8 +259,14 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
             // update element counter
             eidx++;
 
+            // get the tree2face info for orientation
+            t8_locidx_t lctreeid = t8_forest_ltreeid_to_cmesh_ltreeid(forest,itree);
+            (void) t8_cmesh_trees_get_tree_ext(cmesh->trees,lctreeid,&faces1,&ttf);
+
             /* loop over all faces of an element: count total neighboring elements */
             for (iface = 0; iface < num_faces; iface++) {
+                t8_element_shape_t face_shape = eclass_scheme->t8_element_face_shape(element,iface);
+
                 /* allocate face and set element id */
                 t8wyo_face_full_t *Face = (t8wyo_face_full_t *) sc_mempool_alloc(face_mempool);
                 Face->elem = element;
@@ -260,6 +274,8 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
                 Face->lelem_id = ielement;
                 Face->face_number = iface;
                 Face->elem_id = elem_index;
+                Face->nvert = t8_eclass_num_vertices[face_shape];
+                Face->orientation = ttf[iface] / F; // see t8_cmesh_trees.c:L1008
 
                 /* add face to faces list */
                 (void) sc_list_append(faces,Face);
@@ -315,28 +331,62 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
         /* ------------------------- */
         if (num_neighbors == 1 && (neigh_scheme->t8_element_level(neighs[0]) < own_level)) {
             /* hanging face: the neighbor element is the coarser one (lower level number) */
-            if (neighids[0] < elem_count) {
-                /* neighbor element is local: try to insert new mortar */
+
+            // note: skip local big neighbor as it will filled in below (num_neighbors>1)
+            if (neighids[0] >= elem_count) {
+                /* neighbor element is a ghost: new mortar */
                 auto ret = mortars.insert(Mortar(neighids[0],dual_faces[0]));
                 if(ret.second) nmortar++;
 
+                /* get hanging subface id */
+                t8_eclass_scheme_c *ts;
+                t8_eclass_scheme_c *boundary_scheme;
+                t8_eclass_t boundary_class;
+                t8_element_t *face_element;
+
+                t8_tree_t tree;
+                int tree_face;
+                int isubface;
+
+                /* get pointer to the tree to read its element class */
+                tree = t8_forest_get_tree(forest,Face_full->ltree_id);
+                ts = t8_forest_get_eclass_scheme(forest,tree->eclass);
+
+                /* Get the scheme associated to the element class of the boundary element. */
+                /* Compute the face of elem_tree at which the face connection is. */
+                tree_face = ts->t8_element_tree_face(Face_full->elem,iface);
+
+                /* get the eclass scheme for the boundary */
+                boundary_class = (t8_eclass_t) t8_eclass_face_types[tree->eclass][tree_face];
+                boundary_scheme = t8_forest_get_eclass_scheme(forest,boundary_class);
+                boundary_scheme->t8_element_new(1,&face_element);
+                ts->t8_element_boundary_face(Face_full->elem,iface,face_element,boundary_scheme);
+                isubface = boundary_scheme->t8_element_child_id(face_element);
+
+                /* retrieve mortar (may have existed) */
+                auto &mortar = (*ret.first);
+                assert(mortar.cnt < MAX_SUBFACES);
+                assert(mortar.elemidx_plus[isubface] == -1);
+
                 /* insert hang element info */
-                auto &mortar = (*ret.first); // retrieve mortar (may have existed)
-                if(mortar.cnt < MAX_SUBFACES){
-                    mortar.elemidx_plus[mortar.cnt] = elem_idx;
-                    mortar.iface_plus[mortar.cnt] = iface;
-                    mortar.cnt++;
-                }
+                mortar.elemidx_plus[isubface] = elem_idx;
+                mortar.iface_plus[isubface] = iface;
+                mortar.cnt++;
+
+                /* free memory */
+                boundary_scheme->t8_element_destroy(1,&face_element);
             }
-        } else if (num_neighbors > 1) {
+        } else
+        if (num_neighbors > 1) {
             /* hanging face: this element is the bigger one: try to insert new mortar */
             auto ret = mortars.insert(Mortar(elem_idx,iface));
             if(ret.second) nmortar++;
 
             /* insert hang element info */
             auto &mortar = (*ret.first); // retrieve mortar (may have existed)
+            assert(mortar.cnt == 0);
+
             for(int ihang = 0; ihang < num_neighbors; ihang++){
-                assert(mortar.cnt < MAX_SUBFACES);
                 mortar.elemidx_plus[ihang] = neighids[ihang];
                 mortar.iface_plus[ihang] = dual_faces[ihang];
             }
@@ -369,7 +419,10 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
                 /* set owner and neighbor element info */
                 Face->e1 = Face_full->elem_id + FBASE;
                 Face->e2 = neighids[ielem] + FBASE;
-                //Face->iface2 = dual_faces[ielem] + FBASE;
+                Face->nvert = Face_full->nvert;
+                Face->iface1 = iface + FBASE;
+                Face->iface2 = dual_faces[ielem] + FBASE;
+                Face->orientation = Face_full->orientation;
 
                 /* try to insert the face into the hash */
                 if (sc_hash_insert_unique(faces_unique,Face,NULL)) {
@@ -437,7 +490,10 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
                                                          element,Face_full->face_number);
 
                 /* set face index and increment counter */
-                Face->nvert = face_info[T8WYO_FTYPE_KEY]; // lookup value from cmesh
+                Face->orientation = Face_full->orientation;
+                Face->iface1 = Face_full->face_number + FBASE;
+                Face->iface2 = -1; // TODO: lookup value from cmesh: patch number
+                Face->nvert = face_info[T8WYO_FTYPE_KEY];   // lookup value from cmesh: face type
                 Face->face_index = face_unique_count;
                 face_unique_count++;
                 bface_count++;
@@ -458,10 +514,10 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
         // big element mortar data (1st two entries)
         minfo[0] = mortar->elemidx_minus+FBASE;
         minfo[1] = mortar->iface_minus;
-        if(reorder[mortar->elemidx_minus]){
-            const int eclass_retype = elem_info[INFO_ELEM_SIZE*mortar->elemidx_minus+ETYPE_IND];
-            minfo[1] = swap_face(eclass_retype,minfo[1]);
-        }
+//        if(mortar->elemidx_minus < elem_count && reorder[mortar->elemidx_minus]){
+//            const int eclass_retype = elem_info[INFO_ELEM_SIZE*mortar->elemidx_minus+ETYPE_IND];
+//            minfo[1] = swap_face(eclass_retype,minfo[1]);
+//        }
 
         // hang element mortar data (entries 2-9)
         int * const mhang = &minfo[2];
@@ -470,10 +526,12 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
             mhang[2*i+1] = mortar->iface_plus[i];
 
             // swap faces
-            if(reorder[mortar->elemidx_plus[i]]){
-                const int eclass_retype = elem_info[INFO_ELEM_SIZE*(mortar->elemidx_plus[i])+ETYPE_IND];
-                mhang[2*i+1] = swap_face(eclass_retype,mhang[2*i+1]);
-            }
+//            if(0 <= mortar->elemidx_plus[i] &&
+//                    mortar->elemidx_plus[i] < elem_count &&
+//                    reorder[mortar->elemidx_plus[i]]){
+//                const int eclass_retype = elem_info[INFO_ELEM_SIZE*(mortar->elemidx_plus[i])+ETYPE_IND];
+//                mhang[2*i+1] = swap_face(eclass_retype,mhang[2*i+1]);
+//            }
         }
     }
     mortars.clear();
@@ -483,12 +541,12 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
     sc_list_destroy(faces);
 
     /* allocate and fill face2cell */
-    face2cell.malloc(2*face_unique_count,-1); // four ints per face
+    face2cell.malloc(2*face_unique_count,-1); // two ints per face
     faces_unique->user_data = face2cell.ptr(); // set user_data for loop
     sc_hash_foreach(faces_unique,t8wyo_face2cell_fill);
 
     /* allocate and fill facetype */
-    facetype.malloc(face_unique_count,-1);
+    facetype.malloc(4*face_unique_count,-1);
     faces_unique->user_data = facetype.ptr();
     sc_hash_foreach(faces_unique,t8wyo_facetype_fill);
 

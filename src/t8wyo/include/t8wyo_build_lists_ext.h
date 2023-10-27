@@ -17,6 +17,7 @@
 #include <t8.h>
 #include <t8_element_c_interface.h>
 #include <t8_cmesh/t8_cmesh_types.h>
+#include <t8_cmesh/t8_cmesh_trees.h>
 #include <t8_schemes/t8_default/t8_default_cxx.hxx>
 #include <t8_forest/t8_forest_general.h>
 #include <t8_forest/t8_forest_geometrical.h>
@@ -51,6 +52,8 @@ typedef struct {
     t8_locidx_t lelem_id;   /* local element id in tree */
     t8_locidx_t elem_id;    /* local element id this face belongs to */
     int face_number;        /* face number within the element */
+    int nvert;
+    int orientation;
 }
 t8wyo_face_full_t;
 
@@ -59,6 +62,7 @@ typedef struct {
     t8_locidx_t e2; /* element 2 on face */
     int iface1;
     int iface2;
+    int orientation;
     t8_locidx_t face_index; /* local face index */
     t8_locidx_t nvert;   /* number of face vertices */
     Real normal[3];
@@ -76,6 +80,10 @@ struct Mortar {
     Mortar(int elemidx,int iface) : cnt{0} {
         elemidx_minus = elemidx;
         iface_minus = iface;
+
+        // initialize hanging elements
+        elemidx_plus[0]=elemidx_plus[1]=elemidx_plus[2]=elemidx_plus[3] = -1;
+        iface_plus[0]=iface_plus[1]=iface_plus[2]=iface_plus[3] = -1;
     }
 
     bool operator==(const Mortar& otherMortar) const {
