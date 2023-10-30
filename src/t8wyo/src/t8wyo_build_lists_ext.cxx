@@ -178,7 +178,7 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
      // make unordered hash sets
     std::unordered_set<Mortar, Mortar::HashFunction, Mortar::KeyEqual> mortars;
     std::unordered_set<Node, Node::HashFunction> nodes;
-    wyo::memory<char> reorder(elem_count,0);
+//    wyo::memory<char> reorder(elem_count,0);
     double vertex_coords[3];
     double coords[3];
     int icorner;
@@ -248,10 +248,10 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
             }
 
             // check ordering
-            if(t8_cmesh_tree_vertices_negative_volume(element_shape,tree_vertices,num_corners)){
-                correct_node_ordering(element_shape,tree_node_ids);
-                reorder[elem_index] = 1; // set node connectivity reorder flag
-            }
+//            if(t8_cmesh_tree_vertices_negative_volume(element_shape,tree_vertices,num_corners)){
+//                correct_node_ordering(element_shape,tree_node_ids);
+//                reorder[elem_index] = 1; // set node connectivity reorder flag
+//            }
 
             // fill element connectivity
             memcpy(&elem_conn[num_corners*eidx],tree_node_ids,num_corners*sizeof(int));
