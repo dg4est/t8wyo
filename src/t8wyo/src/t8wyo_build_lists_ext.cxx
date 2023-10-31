@@ -219,6 +219,7 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
             int *einfo = &elem_info[INFO_ELEM_SIZE*elem_index];
             einfo[ETYPE_IND] = elem_class[element_shape];
             einfo[ELEVL_IND] = eclass_scheme->t8_element_level(element);
+            einfo[ENVOL_IND] = 0; // default: check negative volume below
 
             /* initialize element's volume */
             elem_vol[elem_index] = t8_forest_element_volume(forest,itree,element);
@@ -248,10 +249,11 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
             }
 
             // check ordering
-//            if(t8_cmesh_tree_vertices_negative_volume(element_shape,tree_vertices,num_corners)){
-//                correct_node_ordering(element_shape,tree_node_ids);
-//                reorder[elem_index] = 1; // set node connectivity reorder flag
-//            }
+            if(t8_cmesh_tree_vertices_negative_volume(element_shape,tree_vertices,num_corners)){
+                einfo[ENVOL_IND] = 1;
+                //correct_node_ordering(element_shape,tree_node_ids);
+                //reorder[elem_index] = 1; // set node connectivity reorder flag
+            }
 
             // fill element connectivity
             memcpy(&elem_conn[num_corners*eidx],tree_node_ids,num_corners*sizeof(int));
