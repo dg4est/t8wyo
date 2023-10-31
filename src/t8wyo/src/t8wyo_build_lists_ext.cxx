@@ -513,7 +513,7 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
 
         // big element mortar data (1st two entries)
         minfo[0] = mortar->elemidx_minus+FBASE;
-        minfo[1] = mortar->iface_minus;
+        minfo[1] = mortar->iface_minus+FBASE;
 //        if(mortar->elemidx_minus < elem_count && reorder[mortar->elemidx_minus]){
 //            const int eclass_retype = elem_info[INFO_ELEM_SIZE*mortar->elemidx_minus+ETYPE_IND];
 //            minfo[1] = swap_face(eclass_retype,minfo[1]);
@@ -523,7 +523,7 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
         int * const mhang = &minfo[2];
         for(int i=0; i<MAX_SUBFACES; i++){
             mhang[2*i] = mortar->elemidx_plus[i]+FBASE;
-            mhang[2*i+1] = mortar->iface_plus[i];
+            mhang[2*i+1] = mortar->iface_plus[i]+FBASE;
 
             // swap faces
 //            if(0 <= mortar->elemidx_plus[i] &&
