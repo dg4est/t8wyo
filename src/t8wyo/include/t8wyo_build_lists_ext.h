@@ -120,9 +120,9 @@ struct Node {
     }
 
     bool operator==(const Node& otherNode) const {
-        return (otherNode.id == id) || ((abs(this->x - otherNode.x) <= TOL) &&
-                                        (abs(this->y - otherNode.y) <= TOL) &&
-                                        (abs(this->z - otherNode.z) <= TOL));
+        return (otherNode.id == id) || ((std::abs(this->x - otherNode.x) <= TOL) &&
+                                        (std::abs(this->y - otherNode.y) <= TOL) &&
+                                        (std::abs(this->z - otherNode.z) <= TOL));
     }
 
     struct HashFunction {
