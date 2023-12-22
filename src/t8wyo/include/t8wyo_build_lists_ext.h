@@ -25,6 +25,7 @@
 /* system header files */
 #include <assert.h>
 #include <unordered_set>
+#include <set>
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,8 +48,8 @@ extern "C" {
 /* =============== */
 /* struct stores all information associated to a elements face */
 typedef struct {
-    t8_element_t *elem;     /* local element */
-    t8_locidx_t ltree_id;    /* local tree id this face belongs to */
+    const t8_element_t *elem; /* local element */
+    t8_locidx_t ltree_id;   /* local tree id this face belongs to */
     t8_locidx_t lelem_id;   /* local element id in tree */
     t8_locidx_t elem_id;    /* local element id this face belongs to */
     int face_number;        /* face number within the element */
@@ -131,6 +132,17 @@ struct Node {
             size_t yHash = std::hash<int>()(int(1000.0*node.y)) << 1;
             size_t zHash = std::hash<int>()(int(1000.0*node.z)) << 2;
             return xHash ^ yHash ^ zHash;
+        }
+    };
+
+    struct CompareFunction {
+        bool operator()(const Node &n1, const Node &n2) const {
+            if(n1.x < n2.x - TOL) return true;
+            if(n1.x > n2.x + TOL) return false;
+            if(n1.y < n2.y - TOL) return true;
+            if(n1.y > n2.y + TOL) return false;
+            if(n1.z < n2.z - TOL) return true;
+            return false;
         }
     };
 };

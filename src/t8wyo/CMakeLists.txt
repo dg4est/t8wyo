@@ -42,7 +42,8 @@ set(metis_dir  "" CACHE PATH  "metis  install directory location")
 # ========================================== #
 # Intel Optimization Flag: AVX2 instructions
 if (CMAKE_C_COMPILER_ID MATCHES "Intel")
-  add_definitions(-xHOST)
+  # add_definitions(-xHOST)
+  add_definitions(-march=core-avx2)
 endif ()
 # ========================================== #
 

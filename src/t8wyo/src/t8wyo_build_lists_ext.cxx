@@ -155,7 +155,7 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
         t8_eclass_scheme_c *eclass_scheme = t8_forest_get_eclass_scheme(forest,tree_class);
 
         for (t8_locidx_t ielement = 0; ielement < num_elements_in_tree; ++ielement) {
-            t8_element_t *element = t8_forest_get_element_in_tree(forest,itree,ielement);
+            const t8_element_t *element = t8_forest_get_element_in_tree(forest,itree,ielement);
             const t8_element_shape_t element_shape = eclass_scheme->t8_element_shape(element);
 
             elem_counts[element_shape]++;
@@ -177,7 +177,8 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
 
      // make unordered hash sets
     std::unordered_set<Mortar, Mortar::HashFunction, Mortar::KeyEqual> mortars;
-    std::unordered_set<Node, Node::HashFunction> nodes;
+//    std::unordered_set<Node, Node::HashFunction> nodes;
+    std::set<Node, Node::CompareFunction> nodes;
 //    wyo::memory<char> reorder(elem_count,0);
     double vertex_coords[3];
     double coords[3];
@@ -199,7 +200,7 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
 
         /* loop over all local elements in the tree. */
         for (t8_locidx_t ielement = 0; ielement < num_elements_in_tree; ++ielement, ++elem_index) {
-            t8_element_t *element = t8_forest_get_element_in_tree(forest,itree,ielement);
+            const t8_element_t *element = t8_forest_get_element_in_tree(forest,itree,ielement);
             const t8_element_shape_t element_shape = eclass_scheme->t8_element_shape(element);
             const int num_faces = eclass_scheme->t8_element_num_faces(element);
             const int num_corners = t8_eclass_num_vertices[element_shape];
@@ -430,7 +431,7 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
                 if (sc_hash_insert_unique(faces_unique,Face,NULL)) {
                     /* compute geometry info */
                     char full = (num_neighbors == 1);
-                    t8_element_t *element = (full) ? Face_full->elem:face_children[ielem];
+                    const t8_element_t *element = (full) ? Face_full->elem:face_children[ielem];
                     int face_number = (full) ? Face_full->face_number:ts->t8_element_face_child_face(Face_full->elem,iface,ielem);
 
                     /* face information */
@@ -462,7 +463,7 @@ void t8wyo_build_lists_ext(t8_cmesh_t cmesh,
             t8_eclass_t tree_class = t8_forest_get_tree_class(forest,Face_full->ltree_id);
             t8_locidx_t cmesh_ltreeid = t8_forest_ltreeid_to_cmesh_ltreeid(forest,Face_full->ltree_id);
             t8_eclass_scheme_c *eclass_scheme = t8_forest_get_eclass_scheme(forest,tree_class);
-            t8_element_t *element = t8_forest_get_element_in_tree(forest,Face_full->ltree_id,Face_full->lelem_id);
+            const t8_element_t *element = t8_forest_get_element_in_tree(forest,Face_full->ltree_id,Face_full->lelem_id);
 
             /* compute original tree face number */
             int tree_face = t8_element_tree_face(eclass_scheme,element,Face_full->face_number);

@@ -88,7 +88,7 @@ void t8wyo_build_forest_(int *ntetra,int *npyr,int *nprizm,int *nhex,
         t8_eclass_scheme_c *eclass_scheme = t8_forest_get_eclass_scheme(t8wyo_forest,tree_class);
 
         for (t8_locidx_t ielement = 0; ielement < num_elements_in_tree; ++ielement) {
-            t8_element_t *element = t8_forest_get_element_in_tree(t8wyo_forest,itree,ielement);
+            const t8_element_t *element = t8_forest_get_element_in_tree(t8wyo_forest,itree,ielement);
             const t8_element_shape_t element_shape = eclass_scheme->t8_element_shape(element);
 
             elem_counts[element_shape]++;

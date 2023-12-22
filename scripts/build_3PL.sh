@@ -45,8 +45,8 @@ CXX=mpicxx
 FC=mpif90
 F77=mpif90
 
-CFLAGS="-fPIC -O2 -std=gnu99"
-CPPFLAGS="-fPIC -O2 -std=gnu++11"
+CFLAGS="-fPIC -O2" # -std=gnu99"
+CPPFLAGS="-fPIC -O2" # -std=gnu++11"
 # ============ #
 # BLAS library #
 # ============ #

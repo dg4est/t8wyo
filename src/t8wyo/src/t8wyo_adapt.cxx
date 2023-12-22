@@ -140,10 +140,10 @@ void t8wyo_adapt_replace(t8_forest_t forest_old,
         T8_ASSERT(refine = -1);
 
         /* Compute average of solution */
-        Real wtotal[nvar] = {0.0};
+        Real wtotal[nvar]; memset(wtotal, 0, nvar*sizeof(Real));
         Real voltotal = {0.0};
         for (i = 0; i < num_outgoing; i++) {
-            t8_element_t *element = t8_forest_get_element_in_tree(forest_old,which_tree,first_outgoing+i);
+            const t8_element_t *element = t8_forest_get_element_in_tree(forest_old,which_tree,first_outgoing+i);
             Real vol = t8_forest_element_volume(forest_old,first_outgoing+i,element);
             voltotal += vol;
 
